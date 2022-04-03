@@ -15,11 +15,11 @@ public class CreatureArea : Area<CreatureCollection, EntityTrigger, CreatureEnti
 
 
     Vector3[] positions = new Vector3[] {
-        new Vector3(-2, 0, 0),
-        new Vector3(-1, 0, 0),
+        new Vector3(-1.5f, 0, 0),
+        new Vector3(-0.75f, 0, 0),
         new Vector3(0, 0, 0),
-        new Vector3(1, 0, 0),
-        new Vector3(2, 0, 0),
+        new Vector3(0.75f, 0, 0),
+        new Vector3(1.5f, 0, 0),
     };
     
     public override void Start() {
@@ -34,7 +34,8 @@ public class CreatureArea : Area<CreatureCollection, EntityTrigger, CreatureEnti
 
     public override void refresh(CollectionContext<CreatureEntity> context) {
         foreach (var x in collection.getExisting()) {
-            objectMapper[x.value].transform.position = positions[x.index];
+            objectMapper[x.value].transform.parent = transform;
+            objectMapper[x.value].transform.localPosition = positions[x.index];
         }
     }
 }

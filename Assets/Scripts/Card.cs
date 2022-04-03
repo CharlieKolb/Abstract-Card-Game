@@ -12,7 +12,6 @@ public abstract class Card {
         this.gameState = gameState;
     }
 
-
     public void use() {
         var side = this.gameState.activePlayer.side;
         side.hand.remove(this);
@@ -20,16 +19,8 @@ public abstract class Card {
         cardBP.effects.ForEach(x => x.apply(this.gameState));
     }
 
-    public bool canUseFromGraveyard() {
-        return false;
-    }
-
     public bool canUseFromHand() {
-        return true;
-    }
-
-    public bool canUseFromDeck() {
-        return false;
+        return cardBP.effects.TrueForAll(x => x.canApply(gameState));
     }
 }
 

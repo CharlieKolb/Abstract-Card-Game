@@ -2,6 +2,8 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
+using System.Linq;
+
 // todo: move handarea into own class, add CreatureBoard class deriving from EntityBoard
 
 
@@ -15,14 +17,50 @@ public abstract class Effect
     public Effect()
     {}
 
-    public abstract void apply(GameState gameState);
+    public EffectContext getContext() {
+        return new EffectContext();
+    }
+
+    public virtual bool canApply(GameState gameState) {
+        return true;
+    }
+
+    protected abstract void doApply(GameState gameState);
+
+    public void apply(GameState gameState) {
+        Debug.Log("Effect applied");
+        doApply(gameState);
+    }
 }
 
 public class SelfDrawEffect : Effect
 {
-    public override void apply(GameState gameState)
+    protected override void doApply(GameState gameState)
     {
         gameState.activePlayer.drawCard();
+    }
+}
+
+public class SpawnEffect : Effect
+{
+    Stats stats;
+
+    public SpawnEffect(Stats stats) {
+        this.stats = stats;
+    }
+
+    public override bool canApply(GameState gameState) {
+        var board = gameState.activePlayer.side.creatures;
+        return board.getExisting().Count() < board.content.Count;
+    }
+
+    protected override void doApply(GameState gameState)
+    {
+        var board = gameState.activePlayer.side.creatures;
+        var i = 0;
+        Debug.Log(board.content.Count);
+        while (i < board.content.Count && !board.tryPlay(new CreatureEntity(stats), i, getContext())) i++;
+        Debug.Log(i);
     }
 }
 
@@ -67,7 +105,7 @@ public class CreatureCollection : EntityCollection<CreatureEntity> {
 public class EntityCollection<E> : Collection<EntityTrigger, E>
     where E: BoardEntity
 {
-    public EntityCollection(int width) : base(new List<E>(width)) {}
+    public EntityCollection(int width) : base(new List<E>(new E[width])) {}
 
     // public bool trySummonCreature(Creature creature, int index, EffectContext context) {
     //     var res = trySummonCreature(creature, index, context);
@@ -81,10 +119,9 @@ public class EntityCollection<E> : Collection<EntityTrigger, E>
 
     public bool tryPlay(E entity, int index, EffectContext context) {
         if (content[index] != null) return false;
-
-        // Trigger(triggers.ON_PLAY, context);
-
         content[index] = entity;
+        Trigger(triggers.ON_COUNT_CHANGE, CollectionContextFactory<E>.FromAdded(entity));
+
         return true;
     }
 
@@ -94,9 +131,11 @@ public class EntityCollection<E> : Collection<EntityTrigger, E>
             var entity = entityCtx.value;
 
             if (condition.Invoke(entityCtx)) { 
-                // Trigger(triggers.ON_EXIT, effectContext);
             };
         }
+
+        if (cleared.Count > 0) Trigger(triggers.ON_COUNT_CHANGE, CollectionContextFactory<E>.FromRemoved(cleared.ToArray()));
+
         return cleared;
     }
 
@@ -131,16 +170,6 @@ public class Side
         foreach (var e in hand.getExisting())
         {
             if (e.value.canUseFromHand()) return true;
-        }
-
-        foreach (var e in graveyard.getExisting())
-        {
-            if (e.value.canUseFromGraveyard()) return true;
-        }
-
-        foreach (var e in deck.getExisting())
-        {
-            if (e.value.canUseFromDeck()) return true;
         }
 
         return false;
@@ -207,7 +236,7 @@ public class CreatureCardBlueprint : CardBlueprint {
         Stats stats,
         F.InstantiateOriginal instantiateFunc,
         GameObject prefab
-    ) : base(name, new List<Effect>{ new SelfDrawEffect() }) {
+    ) : base(name, new List<Effect>{ new SpawnEffect(stats) }) {
         instantiate = instantiateFunc;
         this.prefab = prefab;
     }
@@ -465,6 +494,7 @@ public class ACardGame : MonoBehaviour
 
     MyCardGame myCardGame;
 
+    CreatureArea creatureArea;
     HandArea handArea;
 
     IEnumerator RunGame()
@@ -507,9 +537,11 @@ public class ACardGame : MonoBehaviour
 
 
         handArea = GetComponentInChildren<HandArea>();
-
-        Debug.Log(myCardGame.gameState.activePlayer.side.hand);
         handArea.SetCollection(myCardGame.gameState.activePlayer.side.hand);
+
+
+        creatureArea = GetComponentInChildren<CreatureArea>();
+        creatureArea.SetCollection(myCardGame.gameState.activePlayer.side.creatures);
 
         var c = StartCoroutine(RunGame());
 

@@ -3,6 +3,7 @@ using UnityEngine;
 using CardGameInterface;
 
 using System.Collections.Generic;
+using System.Linq;
 
 public abstract class Area<Collection, Trigger, Content, ContentObject> : MonoBehaviour
     where Trigger: CollectionTrigger, new()
@@ -49,9 +50,10 @@ public abstract class Area<Collection, Trigger, Content, ContentObject> : MonoBe
 
     public void SetCollection(Collection collection) {
         this.collection = collection;
-        doRefresh(CollectionContextFactory<Content>.FromAdded(collection.content.ToArray()));
+        doRefresh(CollectionContextFactory<Content>.FromAdded(collection.getExisting().Select(x => x.value).ToArray()));
 
         collection.on(collection.triggers.ON_COUNT_CHANGE, (x) => {
+            Debug.Log("Z");
             doRefresh(x);
         });
     }
