@@ -189,13 +189,6 @@ public class HP
     public int points = 20;
 }
 
-public class PlayerController
-{
-    public PlayerController(Player player)
-    {
-
-    }
-}
 
 public class Player : IPlayer
 {
@@ -231,13 +224,13 @@ public class GameState
 {
     public Phases phases;
     public Turn currentTurn;
-    public Player activePlayer;
-    public Player opponentPlayer;
+    public AbstractCardGameController activeController;
+    public AbstractCardGameController passiveController;
 
     public override string ToString()
     {
         return string.Format(
-            "\n\tactivePlayer:{0},\n\toppopnentPlayer:{1}\n", activePlayer.ToString(), opponentPlayer.ToString()
+            "\n\tactivePlayer:{0},\n\toppopnentPlayer:{1}\n", activeController.ToString(), passiveController.ToString()
         );
     }
 }
@@ -272,7 +265,7 @@ public class PhaseUtil
 {
     public static void drawCard(GamePhase p)
     {
-        p.gameState.activePlayer.drawCard();
+        p.gameState.activeController.player.drawCard();
     }
 }
 
@@ -317,16 +310,20 @@ public class Turn : ITurn<TurnContext>
     }
 }
 
-class MyCardGame : TurnGame<Turn, TurnContext, Player>
+class MyCardGame : TurnGame<Turn, TurnContext, AbstractCardGameController>
 {
     public GameState gameState;
     public Phases phases;
 
-    public MyCardGame(DeckBlueprint playerDeck, DeckBlueprint opponentDeck)
+    public MyCardGame(AbstractCardGameController p1, DeckBlueprint d1, AbstractCardGameController p2, DeckBlueprint d2)
     {
         gameState = new GameState();
-        gameState.activePlayer = new Player(gameState, playerDeck);
-        gameState.opponentPlayer = new Player(gameState, opponentDeck);
+        Player player1 = new Player(gameState, d1);
+        Player player2 = new Player(gameState, d2);
+        p1.Instantiate(player1);
+        p2.Instantiate(player2);
+        gameState.activeController = p1;
+        gameState.passiveController = p2;
 
         gameState.phases = new Phases(gameState);
     }
@@ -335,14 +332,14 @@ class MyCardGame : TurnGame<Turn, TurnContext, Player>
         return new Turn(gameState, new TurnContext());
     }
 
-    public override IEnumerable<Player> getNextPlayer()
+    public override IEnumerable<AbstractCardGameController> getNextPlayer()
     {
         while (true)
         {
-            yield return gameState.activePlayer;
-            var tmp = gameState.activePlayer;
-            gameState.activePlayer = gameState.opponentPlayer;
-            gameState.opponentPlayer = tmp;
+            yield return gameState.activeController;
+            var tmp = gameState.activeController;
+            gameState.activeController = gameState.passiveController;
+            gameState.passiveController = tmp;
         }
     }
 }
@@ -369,20 +366,22 @@ public class ACardGame : MonoBehaviour
     {
         Debug.Log(1);
         var advancer = myCardGame.advance();
-
+        Debug.Log(2);
         while (advancer.MoveNext())
         {
-            while (keyPressed == false)
+            Debug.Log("A");
+            var controller = myCardGame.gameState.activeController;
+            Debug.Log("B");
+            while (!controller.passesTurn())
             {
-                yield return new WaitForEndOfFrame(); // yield frame until A is pressed
+                yield return new WaitForEndOfFrame();
             }
-            keyPressed = false;
             if (advancer.Current) break;
         }
 
         Debug.Log(2);
-        Debug.Log(myCardGame.gameState.activePlayer.victoryState);
-        Debug.Log(myCardGame.gameState.opponentPlayer.victoryState);
+        Debug.Log(myCardGame.gameState.activeController.player.victoryState);
+        Debug.Log(myCardGame.gameState.passiveController.player.victoryState);
         yield break;
     }
 
@@ -390,31 +389,37 @@ public class ACardGame : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
-
         var maker = new CardBPMaker(Instantiate, cardPrefab);
 
-        var deckBp = new DeckBlueprint(new Dictionary<CardBlueprint, int>{
+        var deckBp1 = new DeckBlueprint(new Dictionary<CardBlueprint, int>{
             { maker.makeCreatureBP("cardA", new Stats(3,3)), 5 },
             { maker.makeCreatureBP("cardB", new Stats(2,1)), 5 },
             { maker.makeCreatureBP("cardC", new Stats(3,4)), 5 },
             { maker.makeCreatureBP("cardD", new Stats(3,2)), 5 },
         });
 
-        myCardGame = new MyCardGame(deckBp, deckBp); // Need to clone here!!!
+        var deckBp2 = new DeckBlueprint(new Dictionary<CardBlueprint, int>{
+            { maker.makeCreatureBP("cardA", new Stats(3,3)), 5 },
+            { maker.makeCreatureBP("cardB", new Stats(2,1)), 5 },
+            { maker.makeCreatureBP("cardC", new Stats(3,4)), 5 },
+            { maker.makeCreatureBP("cardD", new Stats(3,2)), 5 },
+        });
+
 
         var playerController = GetComponentInChildren<CardGamePlayerController>();
-        playerController.Instantiate(myCardGame.gameState.activePlayer);
+        var aiController = GetComponentInChildren<CardGameAiController>();
+
+
+        myCardGame = new MyCardGame(playerController, deckBp1, aiController, deckBp2);
 
         var c = StartCoroutine(RunGame());
 
     }
 
-    bool keyPressed = false;
 
     // Update is called once per frame
     void Update()
     {
-        if (!keyPressed)
-            keyPressed = Input.GetKeyDown(KeyCode.A);
+        
     }
 }

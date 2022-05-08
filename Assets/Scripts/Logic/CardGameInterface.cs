@@ -253,7 +253,7 @@ public abstract class IPlayer {
 public abstract class TurnGame<Turn, TC, Player>
     where TC : ITurnContext
     where Turn : ITurn<TC>
-    where Player : IPlayer
+    where Player : AbstractCardGameController
 {
 
     public Config getConfig() { return new Config(); }
@@ -263,18 +263,15 @@ public abstract class TurnGame<Turn, TC, Player>
 
     // Call to pass
     public IEnumerator<bool> advance() {
-        foreach (var player in getNextPlayer()) {
+        foreach (var controller in getNextPlayer()) {
             bool gameEnded = false;
-            player.onTrigger = () => gameEnded = true;
+            controller.player.onTrigger = () => gameEnded = true;
 
             var turn = makeTurn();
             turn.startTurn();
             do {
                 if (gameEnded) yield return true;
-
-                if (turn.hasOptions() || getConfig()?.autoAdvanceTurns == false) {
-                    yield return false;
-                }
+                yield return false;
             } while (turn.advance());
 
         }
