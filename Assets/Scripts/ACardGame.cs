@@ -4,88 +4,9 @@ using UnityEngine;
 
 using System.Linq;
 
-// todo: move handarea into own class, add CreatureBoard class deriving from EntityBoard
-
-
 using System;
 
 using CardGameInterface;
-
-
-public abstract class Effect
-{
-    public Effect()
-    {}
-
-    public EffectContext getContext() {
-        return new EffectContext();
-    }
-
-    public virtual bool canApply(GameState gameState) {
-        return true;
-    }
-
-    protected abstract void doApply(GameState gameState);
-
-    public void apply(GameState gameState) {
-        Debug.Log("Effect applied");
-        doApply(gameState);
-    }
-}
-
-public class SelfDrawEffect : Effect
-{
-    protected override void doApply(GameState gameState)
-    {
-        gameState.activePlayer.drawCard();
-    }
-}
-
-public class SpawnEffect : Effect
-{
-    Stats stats;
-
-    public SpawnEffect(Stats stats) {
-        this.stats = stats;
-    }
-
-    public override bool canApply(GameState gameState) {
-        var board = gameState.activePlayer.side.creatures;
-        return board.getExisting().Count() < board.content.Count;
-    }
-
-    protected override void doApply(GameState gameState)
-    {
-        var board = gameState.activePlayer.side.creatures;
-        var i = 0;
-        Debug.Log(board.content.Count);
-        while (i < board.content.Count && !board.tryPlay(new CreatureEntity(stats), i, getContext())) i++;
-        Debug.Log(i);
-    }
-}
-
-
-public class Stats
-{
-    int attack;
-    int health;
-
-    public Stats(int attack, int health)
-    {
-        this.attack = attack;
-        this.health = health;
-    }
-}
-
-public class EntityTrigger : CollectionTrigger
-{
-    public string ON_PLAY = "ON_PLAY"; // any time a creature enters the board
-    // public string ON_SUMMON = "ON_SUMMON"; // any time a creature is summoned
-    // public string ON_ATTACK = "ON_ATTACK";
-    // public string ON_DEATH = "ON_DEATH"; // any time a creature is killed
-    public string ON_EXIT = "ON_EXIT"; // any time a creature leaves the board
-}
-
 
 public class EffectContext {
     public BoardEntity target;
@@ -97,55 +18,6 @@ public class EffectContext {
 
 
 
-public class CreatureCollection : EntityCollection<CreatureEntity> {
-    public CreatureCollection() : base(5) {}
-}
-
-
-public class EntityCollection<E> : Collection<EntityTrigger, E>
-    where E: BoardEntity
-{
-    public EntityCollection(int width) : base(new List<E>(new E[width])) {}
-
-    // public bool trySummonCreature(Creature creature, int index, EffectContext context) {
-    //     var res = trySummonCreature(creature, index, context);
-
-    //     if (res) {
-    //         actions.Trigger(triggers.ON_SUMMON, this);
-    //     }
-
-    //     return res;
-    // }
-
-    public bool tryPlay(E entity, int index, EffectContext context) {
-        if (content[index] != null) return false;
-        content[index] = entity;
-        Trigger(triggers.ON_COUNT_CHANGE, CollectionContextFactory<E>.FromAdded(entity));
-
-        return true;
-    }
-
-    public List<E> clearEntities(Predicate<Element<E>> condition, EffectContext effectContext) {
-        var cleared = new List<E>();
-        foreach (var entityCtx in getExisting()) {
-            var entity = entityCtx.value;
-
-            if (condition.Invoke(entityCtx)) { 
-            };
-        }
-
-        if (cleared.Count > 0) Trigger(triggers.ON_COUNT_CHANGE, CollectionContextFactory<E>.FromRemoved(cleared.ToArray()));
-
-        return cleared;
-    }
-
-    public E clearEntity(int index, EffectContext effectContext) {
-        var list = clearEntities(x => x.index == index, effectContext);
-        if (list.Count == 0) return null;
-
-        return list[0];
-    }
-}
 
 public class Side
 {
@@ -199,9 +71,9 @@ public class CardBPMaker
         this.prefab = prefab;
     }
 
-    public CardBlueprint makeCreatureBP(string name, Stats stats)
+    public CardBlueprint makeCreatureBP(string name, Stats stats, List<Effect> effects = null)
     {
-        return new CreatureCardBlueprint(name, stats, func, prefab);
+        return new CreatureCardBlueprint(name, stats, effects != null ? effects : new List<Effect>(), func, prefab);
     }
 }
 
@@ -211,44 +83,41 @@ public abstract class CardBlueprint
     public string cardName;
     public List<Effect> effects;
 
+    public delegate T InstantiateOriginal<T>(GameObject original) where T : UnityEngine.Object;
 
-    public CardBlueprint(string name, List<Effect> effects)
+    GameObject prefab;
+    F.InstantiateOriginal instantiate;
+
+
+
+    public CardBlueprint(string name, List<Effect> effects, F.InstantiateOriginal instantiateFunc, GameObject prefab)
     {
         cardName = name;
+        instantiate = instantiateFunc;
         this.effects = effects;
+        this.prefab = prefab;
     }
 
     public abstract Card MakeCard(GameState gameState);
 
-    public abstract GameObject Instantiate();
+    public GameObject Instantiate() {
+        return instantiate(prefab);
+    }
 }
 
 public class CreatureCardBlueprint : CardBlueprint {
-
-    public delegate T InstantiateOriginal<T>(GameObject original) where T : UnityEngine.Object;
-
-    F.InstantiateOriginal instantiate;
-
-    GameObject prefab;
-
     public CreatureCardBlueprint(
         string name,
         Stats stats,
+        List<Effect> effects,
         F.InstantiateOriginal instantiateFunc,
         GameObject prefab
-    ) : base(name, new List<Effect>{ new SpawnEffect(stats) }) {
-        instantiate = instantiateFunc;
-        this.prefab = prefab;
+    ) : base(name, effects.Concat(new List<Effect>{ new SpawnEffect(stats) }).ToList(), instantiateFunc, prefab) {
     }
 
     public override Card MakeCard(GameState gameState)
     {
         return new CreatureCard(gameState, this);
-    }
-
-    public override GameObject Instantiate()
-    {
-        return instantiate(prefab);
     }
 }
 
@@ -488,14 +357,13 @@ public class DeckBlueprint
     }
 }
 
+
 public class ACardGame : MonoBehaviour
 {
     public GameObject cardPrefab;
 
     MyCardGame myCardGame;
 
-    CreatureArea creatureArea;
-    HandArea handArea;
 
     IEnumerator RunGame()
     {
@@ -534,14 +402,8 @@ public class ACardGame : MonoBehaviour
 
         myCardGame = new MyCardGame(deckBp, deckBp); // Need to clone here!!!
 
-
-
-        handArea = GetComponentInChildren<HandArea>();
-        handArea.SetCollection(myCardGame.gameState.activePlayer.side.hand);
-
-
-        creatureArea = GetComponentInChildren<CreatureArea>();
-        creatureArea.SetCollection(myCardGame.gameState.activePlayer.side.creatures);
+        var playerController = GetComponentInChildren<CardGamePlayerController>();
+        playerController.Instantiate(myCardGame.gameState.activePlayer);
 
         var c = StartCoroutine(RunGame());
 

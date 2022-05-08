@@ -13,9 +13,6 @@ public abstract class Card {
     }
 
     public void use() {
-        var side = this.gameState.activePlayer.side;
-        side.hand.remove(this);
-
         cardBP.effects.ForEach(x => x.apply(this.gameState));
     }
 

@@ -1,7 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-
+using UnityEngine.Events;
 using CardGameInterface;
 
 
@@ -10,11 +10,13 @@ public class HandArea : Area<Hand, HandTrigger, Card, CardObject> {
     public GameObject creatureCardPrefab;
     // public GameObject spellCardPrefab;
 
+    public UnityEvent<CardObject> onCardUse = new UnityEvent<CardObject>();
+
 
     public override CardObject resolvePrefab(Card card) {
         if (card is CreatureCard) {
             var obj = Instantiate(creatureCardPrefab).GetComponent<CreatureCardObject>();
-            obj.Instantiate(card);
+            obj.Instantiate(card, () => onCardUse.Invoke(obj));
             return obj;
         }
 
@@ -40,10 +42,9 @@ public class HandArea : Area<Hand, HandTrigger, Card, CardObject> {
     
     void refreshCards() {
         targetPositions = new List<Vector3>();
-        var cards = collection.content;
-        var cl = cardLayout(cards.Count);
-        for(var i = 0; i < cards.Count; ++i) {
-            var card = cards[i];
+        var cl = cardLayout(collection.Count);
+        for(var i = 0; i < collection.Count; ++i) {
+            var card = collection[i];
             var gameObj = objectMapper[card].gameObject;
             gameObj.SetActive(true);
             gameObj.transform.parent = this.transform;
@@ -56,9 +57,8 @@ public class HandArea : Area<Hand, HandTrigger, Card, CardObject> {
     }
 
     public void moveCardsTowardsTarget(float percent) {
-        var cards = collection.content;
         for (var i = 0; i < targetPositions.Count; ++i) {
-            var cardTransform = objectMapper[cards[i]].transform;
+            var cardTransform = objectMapper[collection[i]].transform;
             var curr = cardTransform.position;
             var target = targetPositions[i] + transform.parent.position;
 

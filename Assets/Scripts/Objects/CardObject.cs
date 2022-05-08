@@ -1,15 +1,17 @@
 using UnityEngine;
-
+using System;
 using CardGameInterface;
 
 // Instance of a card, usually in hand or preview
 public abstract class CardObject : MonoBehaviour {
-    Card card; // effects and name
+    Action triggerUse;
 
+    public Card card; // effects and name
     public GameState gameState;
 
-    public void Instantiate(Card card) {
+    public void Instantiate(Card card, Action triggerUse) {
         this.card = card;
+        this.triggerUse = triggerUse;
     }
 
     public override string ToString() {
@@ -17,9 +19,6 @@ public abstract class CardObject : MonoBehaviour {
     }
 
     private void OnMouseDown() {
-        if (card.canUseFromHand()) {
-            card.use();
-            Destroy(this.gameObject);
-        }
+        triggerUse();
     }
 }

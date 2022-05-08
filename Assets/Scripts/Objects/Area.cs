@@ -8,8 +8,9 @@ using System.Linq;
 public abstract class Area<Collection, Trigger, Content, ContentObject> : MonoBehaviour
     where Trigger: CollectionTrigger, new()
     where Collection : Collection<Trigger, Content>
+    where ContentObject : MonoBehaviour
 {
-    protected Collection collection;
+    public Collection collection { get; private set; }
 
     protected Dictionary<Content, ContentObject> objectMapper;
 
@@ -31,17 +32,13 @@ public abstract class Area<Collection, Trigger, Content, ContentObject> : MonoBe
     public abstract ContentObject resolvePrefab(Content content);
 
     private void doRefresh(CollectionContext<Content> context) {
-        Debug.Log("A");
         foreach (var x in context.added) {
-            Debug.Log("B");
             var comp = resolvePrefab(x);
-            Debug.Log(comp);
             objectMapper[x] = comp; 
         }
 
         foreach (var x in context.removed) {
-            Debug.Log("C");
-
+            Destroy(objectMapper[x].gameObject);
             objectMapper.Remove(x);
         }
 

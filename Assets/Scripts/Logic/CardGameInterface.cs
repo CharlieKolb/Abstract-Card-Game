@@ -100,7 +100,7 @@ public abstract class Collection<Triggers, Content> : ActionHandler<string, Coll
 {
     public Triggers triggers = new Triggers(); // this could be static but c sharp is a lil bitch
 
-    public List<Content> content { get; }
+    protected List<Content> content;
 
     public Collection() {
         this.content = new List<Content>();
@@ -109,7 +109,12 @@ public abstract class Collection<Triggers, Content> : ActionHandler<string, Coll
         this.content = content;
     }
 
-    
+    public int Count => content.Count;
+    public Content this[int i]
+    {
+        get { return content[i]; }
+    }
+
     public IEnumerable<Element<Content>> getExisting() {
         for(var i = 0; i < content.Count; ++i) {
             var e = content[i];
