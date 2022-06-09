@@ -7,8 +7,8 @@ public class CardGamePlayerController : AbstractCardGameController {
         handArea.onCardUse.AddListener((cardObject) => {
             var card = cardObject.card;
             if (card.canUseFromHand()) {
-                card.use();
                 handArea.collection.remove(card);
+                card.use();
             }
         });
     }

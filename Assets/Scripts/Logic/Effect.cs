@@ -10,22 +10,22 @@ public abstract class Effect
         return new EffectContext();
     }
 
-    public virtual bool canApply(GameState gameState) {
+    public virtual bool canApply() {
         return true;
     }
 
-    protected abstract void doApply(GameState gameState);
+    protected abstract void doApply();
 
-    public void apply(GameState gameState) {
-        doApply(gameState);
+    public void apply() {
+        doApply();
     }
 }
 
 public class SelfDrawEffect : Effect
 {
-    protected override void doApply(GameState gameState)
+    protected override void doApply()
     {
-        gameState.activeController.player.drawCard();
+        GS.activeController.player.drawCard();
     }
 }
 
@@ -37,14 +37,14 @@ public class SpawnEffect : Effect
         this.stats = stats;
     }
 
-    public override bool canApply(GameState gameState) {
-        var board = gameState.activeController.player.side.creatures;
+    public override bool canApply() {
+        var board = GS.activeController.player.side.creatures;
         return board.getExisting().Count() < board.Count;
     }
 
-    protected override void doApply(GameState gameState)
+    protected override void doApply()
     {
-        var board = gameState.activeController.player.side.creatures;
+        var board = GS.activeController.player.side.creatures;
         var i = 0;
         while (i < board.Count && !board.tryPlay(new CreatureEntity(stats), i, getContext())) i++;
     }

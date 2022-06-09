@@ -7,7 +7,6 @@ public abstract class CardObject : MonoBehaviour {
     Action triggerUse;
 
     public Card card; // effects and name
-    public GameState gameState;
 
     public void Instantiate(Card card, Action triggerUse) {
         this.card = card;

@@ -13,7 +13,6 @@ public class EffectContext {
 
     public Effect effect;
     public Player player;
-    public GameState gameState;
 }
 
 
@@ -27,14 +26,18 @@ public class Side
     public Deck deck;
     public Graveyard graveyard;
     public HP hp;
+    public Resources resources;
+    public Resources maxResources;
 
-    public Side(GameState gameState, DeckBlueprint deckBlueprint, Player player) {
-        deck = Deck.FromBlueprint(deckBlueprint, gameState);
+    public Side(DeckBlueprint deckBlueprint, Player player) {
+        deck = Deck.FromBlueprint(deckBlueprint);
         hand = new Hand();
         creatures = new CreatureCollection();
         graveyard = new Graveyard();
         hp = new HP();
         this.player = player;
+        maxResources = new Resources(5);
+        resources = new Resources(maxResources.cost);
     }
 
     public bool hasOptions()
@@ -98,7 +101,7 @@ public abstract class CardBlueprint
         this.prefab = prefab;
     }
 
-    public abstract Card MakeCard(GameState gameState);
+    public abstract Card MakeCard();
 
     public GameObject Instantiate() {
         return instantiate(prefab);
@@ -115,9 +118,9 @@ public class CreatureCardBlueprint : CardBlueprint {
     ) : base(name, effects.Concat(new List<Effect>{ new SpawnEffect(stats) }).ToList(), instantiateFunc, prefab) {
     }
 
-    public override Card MakeCard(GameState gameState)
+    public override Card MakeCard()
     {
-        return new CreatureCard(gameState, this);
+        return new CreatureCard(this);
     }
 }
 
@@ -142,7 +145,7 @@ public class Deck : CardCollection
         Shuffle();
     }
 
-    public static Deck FromBlueprint(DeckBlueprint deck, GameState gameState)
+    public static Deck FromBlueprint(DeckBlueprint deck)
     {
         var result = new Deck();
         foreach (var key in deck.cards.Keys)
@@ -150,7 +153,7 @@ public class Deck : CardCollection
             var val = deck.cards[key];
             for (var i = 0; i < val; ++i)
             {
-                result.add(key.MakeCard(gameState));
+                result.add(key.MakeCard());
             }
         }
         return result;
@@ -192,12 +195,11 @@ public class HP
 
 public class Player : IPlayer
 {
-    GameState gameState;
     public Side side;
 
-    public Player(GameState gameState, DeckBlueprint deckBlueprint)
+    public Player(DeckBlueprint deckBlueprint)
     {
-        side = new Side(gameState, deckBlueprint, this);
+        side = new Side(deckBlueprint, this);
     }
 
     public bool hasOptions()
@@ -220,33 +222,71 @@ public class Player : IPlayer
     }
 }
 
-public class GameState
-{
-    public Phases phases;
-    public Turn currentTurn;
-    public AbstractCardGameController activeController;
-    public AbstractCardGameController passiveController;
+public interface IBase {}
 
-    public override string ToString()
-    {
-        return string.Format(
-            "\n\tactivePlayer:{0},\n\toppopnentPlayer:{1}\n", activeController.ToString(), passiveController.ToString()
-        );
+
+public abstract class GameAction<K, P> where K : System.Enum where P : IBase {
+    public K key;
+    public P payload;
+
+    public GameAction(K key, P payload) {
+        this.key = key;
+        this.payload = payload;
     }
+}
+
+public enum CardActionKey {
+    DRAW,
+    USE,
+    DISCARD,
+}
+
+public class CardActionPayload : IBase {
+    public Card card;
+
+    public CardActionPayload(Card card) {
+        this.card = card;
+    }
+}
+
+public class CardEvent : GameAction<CardActionKey, CardActionPayload> {
+    public CardEvent(CardActionKey key, CardActionPayload payload) : base(key, payload) {}
+}
+
+public class GameActionHandler<Key, ArgType> {
+    public ActionHandler<Key, ArgType> before = new ActionHandler<Key, ArgType>();
+    public ActionHandler<Key, ArgType> after = new ActionHandler<Key, ArgType>();
+
+    public void Invoke(Key key, ArgType argType, Action action) {
+        before.Trigger(key, argType);
+        action();
+        after.Trigger(key, argType);
+    }
+}
+
+public static class GS
+{
+    // to be initialized
+    public static Phases phases;
+    public static Turn currentTurn;
+    public static AbstractCardGameController activeController;
+    public static AbstractCardGameController passiveController;
+    // end
+    
+    public static GameActionHandler<CardActionKey, CardActionPayload> cardActionHandler = new GameActionHandler<CardActionKey, CardActionPayload>();
+
 }
 
 public class GamePhase : Phase
 {
     public string phaseName;
-    public GameState gameState;
     Func<GamePhase> _nextPhase;
     Action<GamePhase> _onEntry;
     Action<GamePhase> _onExit;
     Func<GamePhase, bool> _hasOptions;
-    public GamePhase(string name, GameState gs, Func<GamePhase> nextPhase, Action<GamePhase> onEntry, Action<GamePhase> onExit, Func<GamePhase, bool> hasOptions)
+    public GamePhase(string name, Func<GamePhase> nextPhase, Action<GamePhase> onEntry, Action<GamePhase> onExit, Func<GamePhase, bool> hasOptions)
     {
         phaseName = name;
-        gameState = gs;
         _nextPhase = nextPhase;
         _onEntry = onEntry;
         _onExit = onExit;
@@ -265,7 +305,7 @@ public class PhaseUtil
 {
     public static void drawCard(GamePhase p)
     {
-        p.gameState.activeController.player.drawCard();
+        GS.activeController.player.drawCard();
     }
 }
 
@@ -277,17 +317,17 @@ public class Phases
     public GamePhase mainPhase2;
     public GamePhase endPhase;
 
-    public Phases(GameState gameState)
+    public Phases()
     {
         Action<GamePhase> defaultEntry = (GamePhase p) => { };
         Action<GamePhase> defaultExit = (GamePhase p) => { };
         Func<GamePhase, bool> defaultHasOptions = (GamePhase p) => false;
 
-        endPhase = new GamePhase("EndPhase", gameState, () => null, defaultEntry, defaultExit, defaultHasOptions);
-        mainPhase2 = new GamePhase("Main Phase 2", gameState, () => endPhase, defaultEntry, defaultExit, defaultHasOptions);
-        battlePhase = new GamePhase("Battle Phase", gameState, () => mainPhase2, defaultEntry, defaultExit, defaultHasOptions);
-        mainPhase1 = new GamePhase("Main Phase 1", gameState, () => battlePhase, defaultEntry, defaultExit, defaultHasOptions);
-        drawPhase = new GamePhase("Draw Phase", gameState, () => mainPhase1, defaultEntry, (p) => PhaseUtil.drawCard(p), defaultHasOptions);
+        endPhase = new GamePhase("EndPhase", () => null, defaultEntry, defaultExit, defaultHasOptions);
+        mainPhase2 = new GamePhase("Main Phase 2", () => endPhase, defaultEntry, defaultExit, defaultHasOptions);
+        battlePhase = new GamePhase("Battle Phase", () => mainPhase2, defaultEntry, defaultExit, defaultHasOptions);
+        mainPhase1 = new GamePhase("Main Phase 1", () => battlePhase, defaultEntry, defaultExit, defaultHasOptions);
+        drawPhase = new GamePhase("Draw Phase", () => mainPhase1, defaultEntry, (p) => PhaseUtil.drawCard(p), defaultHasOptions);
     }
 }
 
@@ -297,49 +337,44 @@ public class TurnContext : ITurnContext {
 
 public class Turn : ITurn<TurnContext>
 {
-    GameState gameState;
-    public Turn(GameState gameState, TurnContext tc) : base(gameState.phases.drawPhase, tc)
-    {
-        this.gameState = gameState;
-    }
+    public Turn(TurnContext tc) : base(GS.phases.drawPhase, tc)
+    {}
 
     public override void startTurn()
     {
-        this.currentPhase = gameState.phases.drawPhase;
-        gameState.currentTurn = this;
+        this.currentPhase = GS.phases.drawPhase;
+        GS.currentTurn = this;
     }
 }
 
 class MyCardGame : TurnGame<Turn, TurnContext, AbstractCardGameController>
 {
-    public GameState gameState;
     public Phases phases;
 
     public MyCardGame(AbstractCardGameController p1, DeckBlueprint d1, AbstractCardGameController p2, DeckBlueprint d2)
     {
-        gameState = new GameState();
-        Player player1 = new Player(gameState, d1);
-        Player player2 = new Player(gameState, d2);
+        Player player1 = new Player(d1);
+        Player player2 = new Player(d2);
         p1.Instantiate(player1);
         p2.Instantiate(player2);
-        gameState.activeController = p1;
-        gameState.passiveController = p2;
+        GS.activeController = p1;
+        GS.passiveController = p2;
 
-        gameState.phases = new Phases(gameState);
+        GS.phases = new Phases();
     }
 
     public override Turn makeTurn() {
-        return new Turn(gameState, new TurnContext());
+        return new Turn(new TurnContext());
     }
 
     public override IEnumerable<AbstractCardGameController> getNextPlayer()
     {
         while (true)
         {
-            yield return gameState.activeController;
-            var tmp = gameState.activeController;
-            gameState.activeController = gameState.passiveController;
-            gameState.passiveController = tmp;
+            yield return GS.activeController;
+            var tmp = GS.activeController;
+            GS.activeController = GS.passiveController;
+            GS.passiveController = tmp;
         }
     }
 }
@@ -364,14 +399,10 @@ public class ACardGame : MonoBehaviour
 
     IEnumerator RunGame()
     {
-        Debug.Log(1);
         var advancer = myCardGame.advance();
-        Debug.Log(2);
         while (advancer.MoveNext())
         {
-            Debug.Log("A");
-            var controller = myCardGame.gameState.activeController;
-            Debug.Log("B");
+            var controller = GS.activeController;
             while (!controller.passesTurn())
             {
                 yield return new WaitForEndOfFrame();
@@ -379,9 +410,6 @@ public class ACardGame : MonoBehaviour
             if (advancer.Current) break;
         }
 
-        Debug.Log(2);
-        Debug.Log(myCardGame.gameState.activeController.player.victoryState);
-        Debug.Log(myCardGame.gameState.passiveController.player.victoryState);
         yield break;
     }
 

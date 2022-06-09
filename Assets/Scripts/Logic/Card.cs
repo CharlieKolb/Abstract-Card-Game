@@ -2,25 +2,24 @@ using UnityEngine;
 
 // A logical card, usually a ccollection of effects based off a blueprint
 public abstract class Card {
-    protected GameState gameState;
     protected CardBlueprint cardBP;
+    protected Resources cost;
 
     public string name => cardBP.cardName;
 
-    public Card(GameState gameState, CardBlueprint cardBP) {
+    public Card(CardBlueprint cardBP) {
         this.cardBP = cardBP;
-        this.gameState = gameState;
     }
 
     public void use() {
-        cardBP.effects.ForEach(x => x.apply(this.gameState));
+        cardBP.effects.ForEach(x => x.apply());
     }
 
     public bool canUseFromHand() {
-        return cardBP.effects.TrueForAll(x => x.canApply(gameState));
+        return cardBP.effects.TrueForAll(x => x.canApply());
     }
 }
 
 public class CreatureCard : Card {
-    public CreatureCard(GameState gameState, CreatureCardBlueprint cardBP) : base(gameState, cardBP) {}
+    public CreatureCard(CreatureCardBlueprint cardBP) : base(cardBP) {}
 }
