@@ -5,7 +5,7 @@ using UnityEngine.Events;
 using CardGameInterface;
 
 
-public class HandArea : Area<Hand, HandTrigger, Card, CardObject> {
+public class HandArea : Area<Hand, Card, CardObject> {
     
     public GameObject creatureCardPrefab;
     // public GameObject spellCardPrefab;
@@ -36,7 +36,15 @@ public class HandArea : Area<Hand, HandTrigger, Card, CardObject> {
         moveCardsTowardsTarget(Time.deltaTime * 0.5f);
     }
 
-    public override void refresh(CollectionContext<Card> hand) {
+
+    public override void initCollection(Hand hand) {
+        GS.handActionHandler.after.on(HandActionKey.COUNT_CHANGED, (x) => {
+            if (x.collection == this.collection) doRefresh(x.diff);
+        });
+        
+    }
+
+    public override void refresh(Diff<Card> diff) {
         refreshCards();
     }
     

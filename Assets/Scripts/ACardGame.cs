@@ -31,11 +31,12 @@ public class Side
 
     public Side(DeckBlueprint deckBlueprint, Player player) {
         deck = Deck.FromBlueprint(deckBlueprint);
+        this.player = player;
+
         hand = new Hand();
         creatures = new CreatureCollection();
         graveyard = new Graveyard();
         hp = new HP();
-        this.player = player;
         maxResources = new Resources(5);
         resources = new Resources(maxResources.cost);
     }
@@ -126,6 +127,15 @@ public class CreatureCardBlueprint : CardBlueprint {
 
 public class Deck : CardCollection
 {
+    public Deck() {
+        GS.cardCollectionActionHandler.before.onAll(x => { if (Equals(x)) GS.deckActionHandler.before.Trigger(x.key, makePayload(x.arg)); });
+        GS.cardCollectionActionHandler.after.onAll(x => { if (Equals(x)) GS.deckActionHandler.after.Trigger(x.key, makePayload(x.arg)); });
+    }
+    
+    private DeckPayload makePayload(CardCollectionPayload cp) {
+        return new DeckPayload(this, cp.diff);
+    }
+
     public override bool hidden()
     {
         return true;
@@ -139,11 +149,11 @@ public class Deck : CardCollection
         return card;
     }
 
-    public override void postAdd(Card c)
-    {
-        base.postAdd(c);
-        Shuffle();
-    }
+    // public override void postAdd(Card c)
+    // {
+    //     base.postAdd(c);
+    //     Shuffle();
+    // }
 
     public static Deck FromBlueprint(DeckBlueprint deck)
     {
@@ -169,21 +179,21 @@ public class Graveyard : CardCollection
     }
 }
 
-public class HandTrigger : CollectionTrigger
-{
-    public static string ON_DISCARD = "ON_DISCARD";
-}
 
-public class Hand : CardCollection<HandTrigger>
+public class Hand : CardCollection
 {
+    public Hand() {
+        GS.cardCollectionActionHandler.before.onAll(x => { if (Equals(x)) GS.handActionHandler.before.Trigger(x.key, makePayload(x.arg)); });
+        GS.cardCollectionActionHandler.after.onAll(x => { if (Equals(x)) GS.handActionHandler.after.Trigger(x.key, makePayload(x.arg)); });
+    }
+
+    private HandPayload makePayload(CardCollectionPayload cp) {
+        return new HandPayload(this, cp.diff);
+    }
+
     public override bool hidden()
     {
         return true;
-    }
-
-    public override void postRemove(Card c)
-    {
-        
     }
 }
 
@@ -225,11 +235,11 @@ public class Player : IPlayer
 public interface IBase {}
 
 
-public abstract class GameAction<K, P> where K : System.Enum where P : IBase {
-    public K key;
+public abstract class GameAction<P> where P : IBase {
+    public string key;
     public P payload;
 
-    public GameAction(K key, P payload) {
+    public GameAction(string key, P payload) {
         this.key = key;
         this.payload = payload;
     }
@@ -249,20 +259,77 @@ public class CardActionPayload : IBase {
     }
 }
 
-public class CardEvent : GameAction<CardActionKey, CardActionPayload> {
-    public CardEvent(CardActionKey key, CardActionPayload payload) : base(key, payload) {}
+public class Diff<Content> {
+    public static Diff<Content> Empty = new Diff<Content>();
+
+    public List<Content> added = new List<Content>();
+    public List<Content> removed = new List<Content>();
 }
 
-public class GameActionHandler<Key, ArgType> {
-    public ActionHandler<Key, ArgType> before = new ActionHandler<Key, ArgType>();
-    public ActionHandler<Key, ArgType> after = new ActionHandler<Key, ArgType>();
+class Differ<Content> {
+    public static Diff<Content> FromAdded(params Content[] args) {
+        return new Diff<Content> {
+            added = args.ToList(),
+            removed = new List<Content>(),
+        };
+    }
 
-    public void Invoke(Key key, ArgType argType, Action action) {
+    public static Diff<Content> FromRemoved(params Content[] args) {
+        return new Diff<Content> {
+            added = new List<Content>(),
+            removed = args.ToList(),
+        };
+    }
+}
+
+public class CollectionActionKey {
+    public static string COUNT_CHANGED = "COUNT_CHANGED";
+}
+
+public class CardCollectionActionKey : CollectionActionKey {
+}
+
+
+public class HandActionKey : CardCollectionActionKey {
+    public static string DRAW = "DRAW";
+    public static string DISCARD = "DISCARD";
+}
+
+public class DeckActionKey : CardCollectionActionKey  {
+    public static string MILL = "MILL";
+    public static string SHUFFLED = "SHUFFLE";
+}
+
+public class CardEvent : GameAction<CardActionPayload> {
+    public CardEvent(string key, CardActionPayload payload) : base(key, payload) {}
+}
+
+public class GameActionHandler<ArgType> {
+    public ActionHandler<string, ArgType> before = new ActionHandler<string, ArgType>();
+    public ActionHandler<string, ArgType> after = new ActionHandler<string, ArgType>();
+
+    public void Invoke(string key, ArgType argType, Action action) {
         before.Trigger(key, argType);
         action();
         after.Trigger(key, argType);
     }
 }
+
+public class CollectionPayload<C, E> : IBase where E : Entity where C : Collection<E> {
+    public C collection;
+    public Diff<E> diff;
+
+    public CollectionPayload(C collection, Diff<E> diff = null) {
+        this.collection = collection;
+        this.diff = diff == null ? Diff<E>.Empty : diff;
+    }
+}
+public class CardCollectionPayload : CollectionPayload<CardCollection, Card> { public CardCollectionPayload(CardCollection c, Diff<Card> diff = null) : base(c, diff) {} }
+public class DeckPayload : CollectionPayload<Deck, Card> { public DeckPayload(Deck d, Diff<Card> diff = null) : base(d, diff) {} }
+public class HandPayload : CollectionPayload<Hand, Card> { public HandPayload(Hand h, Diff<Card> diff = null) : base(h, diff) {} }
+
+public class BoardAreaPayload : CollectionPayload<BoardCollection, BoardEntity> { public BoardAreaPayload(BoardCollection b, Diff<BoardEntity> diff = null) : base(b, diff) {} }
+public class CreatureAreaPayload : CollectionPayload<CreatureCollection, CreatureEntity> { public CreatureAreaPayload(CreatureCollection c, Diff<CreatureEntity> diff = null) : base(c, diff) {} }
 
 public static class GS
 {
@@ -273,7 +340,19 @@ public static class GS
     public static AbstractCardGameController passiveController;
     // end
     
-    public static GameActionHandler<CardActionKey, CardActionPayload> cardActionHandler = new GameActionHandler<CardActionKey, CardActionPayload>();
+    // todo: finish complete tree and add listeners to cascade calls (see Hand)
+    public static GameActionHandler<CardActionPayload> cardActionHandler = new GameActionHandler<CardActionPayload>();
+
+    public static GameActionHandler<CardCollectionPayload> cardCollectionActionHandler = new GameActionHandler<CardCollectionPayload>();
+    // into
+    public static GameActionHandler<HandPayload> handActionHandler = new GameActionHandler<HandPayload>();
+    public static GameActionHandler<DeckPayload> deckActionHandler = new GameActionHandler<DeckPayload>();
+    
+    
+    public static GameActionHandler<BoardAreaPayload> boardAreaActionHandler = new GameActionHandler<BoardAreaPayload>();
+    // into
+    public static GameActionHandler<CreatureAreaPayload> creatureAreaActionHandler = new GameActionHandler<CreatureAreaPayload>();
+
 
 }
 

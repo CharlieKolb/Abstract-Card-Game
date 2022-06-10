@@ -57,37 +57,6 @@ public class ActionHandler<Key, ArgType> {
     }
 }
 
-public class CollectionTrigger {
-    public string ON_COUNT_CHANGE = "ON_COUNT_CHANGE";
-}
-
-
-public class ActionContext {
-
-}
-
-class CollectionContextFactory<Content> {
-    public static CollectionContext<Content> FromAdded(params Content[] args) {
-        return new CollectionContext<Content> {
-            added = args.ToList(),
-            removed = new List<Content>(),
-        };
-    }
-
-    public static CollectionContext<Content> FromRemoved(params Content[] args) {
-        return new CollectionContext<Content> {
-            added = new List<Content>(),
-            removed = args.ToList(),
-        };
-    }
-}
-
-class CCC_Factory : CollectionContextFactory<Card> {}
-
-public class CollectionContext<Content> : ActionContext {
-    public List<Content> added = new List<Content>();
-    public List<Content> removed = new List<Content>();
-}
 
 public class Element<Content> {
     public Content value { get; set; }
@@ -95,11 +64,8 @@ public class Element<Content> {
 
 }
 
-public abstract class Collection<Triggers, Content> : ActionHandler<string, CollectionContext<Content>>
-    where Triggers : CollectionTrigger, new()
+public abstract class Collection<Content> where Content : Entity
 {
-    public Triggers triggers = new Triggers(); // this could be static but c sharp is a lil bitch
-
     protected List<Content> content;
 
     public Collection() {
@@ -128,8 +94,7 @@ public abstract class Collection<Triggers, Content> : ActionHandler<string, Coll
 }
 
 
-public abstract class CardCollection<Triggers> : Collection<Triggers, Card>
-    where Triggers : CollectionTrigger, new()
+public abstract class CardCollection : Collection<Card>
 {
     public virtual bool hidden() { return true; }
 
@@ -137,24 +102,16 @@ public abstract class CardCollection<Triggers> : Collection<Triggers, Card>
         return content.Count == 0;
     }
 
-    public virtual void preAdd(Card card) {}
-    public virtual void postAdd(Card card) {}
     public void add(Card card) {
-        preAdd(card);
+        GS.cardCollectionActionHandler.before.Trigger(CardCollectionActionKey.COUNT_CHANGED, new CardCollectionPayload(this, Differ<Card>.FromAdded(card)));
         content.Add(card);
-        postAdd(card);
-
-        Trigger(triggers.ON_COUNT_CHANGE, CCC_Factory.FromAdded(card));
+        GS.cardCollectionActionHandler.after.Trigger(CardCollectionActionKey.COUNT_CHANGED, new CardCollectionPayload(this, Differ<Card>.FromAdded(card)));
     }
 
-    public virtual void preRemove(Card card) {}
-    public virtual void postRemove(Card card) {}
     public void remove(Card card) {
-        preRemove(card);
+        GS.cardCollectionActionHandler.before.Trigger(CardCollectionActionKey.COUNT_CHANGED, new CardCollectionPayload(this, Differ<Card>.FromRemoved(card)));
         content.Remove(card);
-        postRemove(card);
-
-        Trigger(triggers.ON_COUNT_CHANGE, CCC_Factory.FromRemoved(card));
+        GS.cardCollectionActionHandler.after.Trigger(CardCollectionActionKey.COUNT_CHANGED, new CardCollectionPayload(this, Differ<Card>.FromRemoved(card)));
     }
 
     public void Shuffle() {
@@ -220,7 +177,6 @@ public abstract class ITurn<TC> where TC : ITurnContext {
 
     public abstract void startTurn();
 }
-public abstract class CardCollection : CardCollection<CollectionTrigger> {}
 
 
 public enum VictoryState {

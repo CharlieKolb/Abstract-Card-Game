@@ -4,7 +4,7 @@ using UnityEngine;
 
 using CardGameInterface;
 
-public class CreatureArea : Area<CreatureCollection, EntityTrigger, CreatureEntity, CreatureObject> {
+public class CreatureArea : Area<CreatureCollection, CreatureEntity, CreatureObject> {
 
     public GameObject creatureObjectPrefab;
 
@@ -32,7 +32,12 @@ public class CreatureArea : Area<CreatureCollection, EntityTrigger, CreatureEnti
         if (collection == null) return;
     }
 
-    public override void refresh(CollectionContext<CreatureEntity> context) {
+    public override void initCollection(CreatureCollection content) {
+        
+    }
+
+
+    public override void refresh(Diff<CreatureEntity> context) {
         foreach (var x in collection.getExisting()) {
             objectMapper[x.value].transform.parent = transform;
             objectMapper[x.value].transform.localPosition = positions[x.index];

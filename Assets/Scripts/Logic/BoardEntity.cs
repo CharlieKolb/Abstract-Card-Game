@@ -4,16 +4,16 @@ using System;
 
 using CardGameInterface;
 
-public class EntityTrigger : CollectionTrigger
-{
-    public string ON_PLAY = "ON_PLAY"; // any time a creature enters the board
-    // public string ON_SUMMON = "ON_SUMMON"; // any time a creature is summoned
-    // public string ON_ATTACK = "ON_ATTACK";
-    // public string ON_DEATH = "ON_DEATH"; // any time a creature is killed
-    public string ON_EXIT = "ON_EXIT"; // any time a creature leaves the board
-}
+// public class EntityTrigger : CollectionTrigger
+// {
+//     public string ON_PLAY = "ON_PLAY"; // any time a creature enters the board
+//     // public string ON_SUMMON = "ON_SUMMON"; // any time a creature is summoned
+//     // public string ON_ATTACK = "ON_ATTACK";
+//     // public string ON_DEATH = "ON_DEATH"; // any time a creature is killed
+//     public string ON_EXIT = "ON_EXIT"; // any time a creature leaves the board
+// }
 
-public class BoardEntity : ActionHandler<string, EffectContext>
+public class BoardEntity : Entity
 {}
 
 
@@ -28,15 +28,15 @@ public class CreatureEntity : BoardEntity
 }
 
 
-public class CreatureCollection : EntityCollection<CreatureEntity> {
+public class CreatureCollection : BoardCollection<CreatureEntity> {
     public CreatureCollection() : base(5) {}
 }
 
 
-public class EntityCollection<E> : Collection<EntityTrigger, E>
+public class BoardCollection<E> : Collection<E>
     where E: BoardEntity
 {
-    public EntityCollection(int width) : base(new List<E>(new E[width])) {}
+    public BoardCollection(int width) : base(new List<E>(new E[width])) {}
 
     // public bool trySummonCreature(Creature creature, int index, EffectContext context) {
     //     var res = trySummonCreature(creature, index, context);
@@ -51,7 +51,8 @@ public class EntityCollection<E> : Collection<EntityTrigger, E>
     public bool tryPlay(E entity, int index, EffectContext context) {
         if (content[index] != null) return false;
         content[index] = entity;
-        Trigger(triggers.ON_COUNT_CHANGE, CollectionContextFactory<E>.FromAdded(entity));
+
+        // Trigger(triggers.ON_COUNT_CHANGE, CollectionContextFactory<E>.FromAdded(entity));
 
         return true;
     }
@@ -65,7 +66,7 @@ public class EntityCollection<E> : Collection<EntityTrigger, E>
             };
         }
 
-        if (cleared.Count > 0) Trigger(triggers.ON_COUNT_CHANGE, CollectionContextFactory<E>.FromRemoved(cleared.ToArray()));
+        // if (cleared.Count > 0) Trigger(triggers.ON_COUNT_CHANGE, CollectionContextFactory<E>.FromRemoved(cleared.ToArray()));
 
         return cleared;
     }
@@ -76,4 +77,7 @@ public class EntityCollection<E> : Collection<EntityTrigger, E>
 
         return list[0];
     }
+}
+public class BoardCollection : BoardCollection<BoardEntity> {
+    public BoardCollection(int width) : base(width) {}
 }

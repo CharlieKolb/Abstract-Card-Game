@@ -5,9 +5,9 @@ using CardGameInterface;
 using System.Collections.Generic;
 using System.Linq;
 
-public abstract class Area<Collection, Trigger, Content, ContentObject> : MonoBehaviour
-    where Trigger: CollectionTrigger, new()
-    where Collection : Collection<Trigger, Content>
+public abstract class Area<Collection, Content, ContentObject> : MonoBehaviour
+    where Content : Entity
+    where Collection : Collection<Content>
     where ContentObject : MonoBehaviour
 {
     public Collection collection { get; private set; }
@@ -28,10 +28,11 @@ public abstract class Area<Collection, Trigger, Content, ContentObject> : MonoBe
         if (collection == null) return;
     }
 
-    public abstract void refresh(CollectionContext<Content> context);
+    public abstract void initCollection(Collection content);
+    public abstract void refresh(Diff<Content> context);
     public abstract ContentObject resolvePrefab(Content content);
 
-    private void doRefresh(CollectionContext<Content> context) {
+    protected void doRefresh(Diff<Content> context) {
         foreach (var x in context.added) {
             var comp = resolvePrefab(x);
             objectMapper[x] = comp; 
@@ -47,12 +48,7 @@ public abstract class Area<Collection, Trigger, Content, ContentObject> : MonoBe
 
     public void SetCollection(Collection collection) {
         this.collection = collection;
-        doRefresh(CollectionContextFactory<Content>.FromAdded(collection.getExisting().Select(x => x.value).ToArray()));
-
-        collection.on(collection.triggers.ON_COUNT_CHANGE, (x) => {
-            Debug.Log("Z");
-            doRefresh(x);
-        });
+        doRefresh(Differ<Content>.FromAdded(collection.getExisting().Select(x => x.value).ToArray()));
     }
 
 
