@@ -12,8 +12,6 @@ public class CreatureArea : Area<CreatureCollection, CreatureEntity, CreatureObj
         return Instantiate(creatureObjectPrefab).GetComponent<CreatureObject>();
     }
 
-
-
     Vector3[] positions = new Vector3[] {
         new Vector3(-1.5f, 0, 0),
         new Vector3(-0.75f, 0, 0),

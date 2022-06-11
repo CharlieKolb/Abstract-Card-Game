@@ -1,5 +1,5 @@
 using System.Linq;
-
+using UnityEngine;
 
 public abstract class Effect
 {
@@ -46,6 +46,9 @@ public class SpawnEffect : Effect
     {
         var board = GS.activeController.player.side.creatures;
         var i = 0;
-        while (i < board.Count && !board.tryPlay(new CreatureEntity(stats), i, getContext())) i++;
+        while (i < board.Count && !board.tryPlay(new CreatureEntity(stats), i, getContext())) {
+            i++;
+            if (i == board.Count) throw new System.Exception("Tried to play card on full board!");
+        }
     }
 }
