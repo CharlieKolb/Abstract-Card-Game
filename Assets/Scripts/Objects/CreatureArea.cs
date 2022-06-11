@@ -32,12 +32,14 @@ public class CreatureArea : Area<CreatureCollection, CreatureEntity, CreatureObj
         if (collection == null) return;
     }
 
-    public override void initCollection(CreatureCollection content) {
-        
+    protected override void initCollection() {
+        GS.creatureAreaActionHandler.after.on(CreatureAreaActionKey.COUNT_CHANGED, (x) =>  { 
+            if(x.collection == collection) doRefresh(x.diff);
+        });
     }
 
 
-    public override void refresh(Diff<CreatureEntity> context) {
+    protected override void refresh(Diff<CreatureEntity> context) {
         foreach (var x in collection.getExisting()) {
             objectMapper[x.value].transform.parent = transform;
             objectMapper[x.value].transform.localPosition = positions[x.index];

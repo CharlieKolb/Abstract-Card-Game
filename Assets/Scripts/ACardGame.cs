@@ -16,8 +16,6 @@ public class EffectContext {
 }
 
 
-
-
 public class Side
 {
     public Player player;
@@ -125,77 +123,7 @@ public class CreatureCardBlueprint : CardBlueprint {
     }
 }
 
-public class Deck : CardCollection
-{
-    public Deck() {
-        GS.cardCollectionActionHandler.before.onAll(x => { if (Equals(x)) GS.deckActionHandler.before.Trigger(x.key, makePayload(x.arg)); });
-        GS.cardCollectionActionHandler.after.onAll(x => { if (Equals(x)) GS.deckActionHandler.after.Trigger(x.key, makePayload(x.arg)); });
-    }
-    
-    private DeckPayload makePayload(CardCollectionPayload cp) {
-        return new DeckPayload(this, cp.diff);
-    }
 
-    public override bool hidden()
-    {
-        return true;
-    }
-
-    public Card draw()
-    {
-        Card card = this.content[0];
-        this.remove(card);
-
-        return card;
-    }
-
-    // public override void postAdd(Card c)
-    // {
-    //     base.postAdd(c);
-    //     Shuffle();
-    // }
-
-    public static Deck FromBlueprint(DeckBlueprint deck)
-    {
-        var result = new Deck();
-        foreach (var key in deck.cards.Keys)
-        {
-            var val = deck.cards[key];
-            for (var i = 0; i < val; ++i)
-            {
-                result.add(key.MakeCard());
-            }
-        }
-        return result;
-    }
-
-}
-
-public class Graveyard : CardCollection
-{
-    public override bool hidden()
-    {
-        return false;
-    }
-}
-
-
-public class Hand : CardCollection
-{
-    public Hand() {
-        GS.cardCollectionActionHandler.before.onAll(x => { if (Equals(x)) GS.handActionHandler.before.Trigger(x.key, makePayload(x.arg)); });
-        GS.cardCollectionActionHandler.after.onAll(x => { if (Equals(x)) GS.handActionHandler.after.Trigger(x.key, makePayload(x.arg)); });
-    }
-
-    private HandPayload makePayload(CardCollectionPayload cp) {
-        return new HandPayload(this, cp.diff);
-    }
-
-    public override bool hidden()
-    {
-        return true;
-    }
-}
 
 public class HP
 {
@@ -232,105 +160,6 @@ public class Player : IPlayer
     }
 }
 
-public interface IBase {}
-
-
-public abstract class GameAction<P> where P : IBase {
-    public string key;
-    public P payload;
-
-    public GameAction(string key, P payload) {
-        this.key = key;
-        this.payload = payload;
-    }
-}
-
-public enum CardActionKey {
-    DRAW,
-    USE,
-    DISCARD,
-}
-
-public class CardActionPayload : IBase {
-    public Card card;
-
-    public CardActionPayload(Card card) {
-        this.card = card;
-    }
-}
-
-public class Diff<Content> {
-    public static Diff<Content> Empty = new Diff<Content>();
-
-    public List<Content> added = new List<Content>();
-    public List<Content> removed = new List<Content>();
-}
-
-class Differ<Content> {
-    public static Diff<Content> FromAdded(params Content[] args) {
-        return new Diff<Content> {
-            added = args.ToList(),
-            removed = new List<Content>(),
-        };
-    }
-
-    public static Diff<Content> FromRemoved(params Content[] args) {
-        return new Diff<Content> {
-            added = new List<Content>(),
-            removed = args.ToList(),
-        };
-    }
-}
-
-public class CollectionActionKey {
-    public static string COUNT_CHANGED = "COUNT_CHANGED";
-}
-
-public class CardCollectionActionKey : CollectionActionKey {
-}
-
-
-public class HandActionKey : CardCollectionActionKey {
-    public static string DRAW = "DRAW";
-    public static string DISCARD = "DISCARD";
-}
-
-public class DeckActionKey : CardCollectionActionKey  {
-    public static string MILL = "MILL";
-    public static string SHUFFLED = "SHUFFLE";
-}
-
-public class CardEvent : GameAction<CardActionPayload> {
-    public CardEvent(string key, CardActionPayload payload) : base(key, payload) {}
-}
-
-public class GameActionHandler<ArgType> {
-    public ActionHandler<string, ArgType> before = new ActionHandler<string, ArgType>();
-    public ActionHandler<string, ArgType> after = new ActionHandler<string, ArgType>();
-
-    public void Invoke(string key, ArgType argType, Action action) {
-        before.Trigger(key, argType);
-        action();
-        after.Trigger(key, argType);
-    }
-}
-
-public class CollectionPayload<C, E> : IBase where E : Entity where C : Collection<E> {
-    public C collection;
-    public Diff<E> diff;
-
-    public CollectionPayload(C collection, Diff<E> diff = null) {
-        this.collection = collection;
-        this.diff = diff == null ? Diff<E>.Empty : diff;
-    }
-}
-public class CardCollectionPayload : CollectionPayload<CardCollection, Card> { public CardCollectionPayload(CardCollection c, Diff<Card> diff = null) : base(c, diff) {} }
-public class DeckPayload : CollectionPayload<Deck, Card> { public DeckPayload(Deck d, Diff<Card> diff = null) : base(d, diff) {} }
-public class HandPayload : CollectionPayload<Hand, Card> { public HandPayload(Hand h, Diff<Card> diff = null) : base(h, diff) {} }
-
-public class BoardAreaPayload : CollectionPayload<BoardCollection, BoardEntity> { public BoardAreaPayload(BoardCollection b, Diff<BoardEntity> diff = null) : base(b, diff) {} }
-public class CreatureAreaPayload : CollectionPayload<CreatureCollection, CreatureEntity> { public CreatureAreaPayload(CreatureCollection c, Diff<CreatureEntity> diff = null) : base(c, diff) {} }
-
 public static class GS
 {
     // to be initialized
@@ -347,13 +176,23 @@ public static class GS
     // into
     public static GameActionHandler<HandPayload> handActionHandler = new GameActionHandler<HandPayload>();
     public static GameActionHandler<DeckPayload> deckActionHandler = new GameActionHandler<DeckPayload>();
+    public static GameActionHandler<GraveyardPayload> graveyardActionHandler = new GameActionHandler<GraveyardPayload>();
     
     
-    public static GameActionHandler<BoardAreaPayload> boardAreaActionHandler = new GameActionHandler<BoardAreaPayload>();
-    // into
     public static GameActionHandler<CreatureAreaPayload> creatureAreaActionHandler = new GameActionHandler<CreatureAreaPayload>();
 
+    public static bool debug = true;
 
+    static GS() {
+        if (debug) {
+            cardActionHandler.before.onAll(x => Debug.Log(x.ToString()));
+            cardCollectionActionHandler.before.onAll(x => Debug.Log(x.ToString()));
+            handActionHandler.before.onAll(x => Debug.Log(x.ToString()));
+            deckActionHandler.before.onAll(x => Debug.Log(x.ToString()));
+            graveyardActionHandler.before.onAll(x => Debug.Log(x.ToString()));
+            creatureAreaActionHandler.before.onAll(x => Debug.Log(x.ToString()));
+        }
+    }
 }
 
 public class GamePhase : Phase

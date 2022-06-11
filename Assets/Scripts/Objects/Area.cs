@@ -28,8 +28,8 @@ public abstract class Area<Collection, Content, ContentObject> : MonoBehaviour
         if (collection == null) return;
     }
 
-    public abstract void initCollection(Collection content);
-    public abstract void refresh(Diff<Content> context);
+    protected abstract void initCollection();
+    protected abstract void refresh(Diff<Content> context);
     public abstract ContentObject resolvePrefab(Content content);
 
     protected void doRefresh(Diff<Content> context) {
@@ -48,6 +48,7 @@ public abstract class Area<Collection, Content, ContentObject> : MonoBehaviour
 
     public void SetCollection(Collection collection) {
         this.collection = collection;
+        initCollection();
         doRefresh(Differ<Content>.FromAdded(collection.getExisting().Select(x => x.value).ToArray()));
     }
 

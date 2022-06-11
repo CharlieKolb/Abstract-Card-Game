@@ -37,14 +37,14 @@ public class HandArea : Area<Hand, Card, CardObject> {
     }
 
 
-    public override void initCollection(Hand hand) {
+    protected override void initCollection() {
         GS.handActionHandler.after.on(HandActionKey.COUNT_CHANGED, (x) => {
             if (x.collection == this.collection) doRefresh(x.diff);
         });
         
     }
 
-    public override void refresh(Diff<Card> diff) {
+    protected override void refresh(Diff<Card> diff) {
         refreshCards();
     }
     
