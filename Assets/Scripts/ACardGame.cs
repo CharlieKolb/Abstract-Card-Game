@@ -111,6 +111,7 @@ public abstract class CardBlueprint
 }
 
 public class CreatureCardBlueprint : CardBlueprint {
+    public Stats stats;
     public CreatureCardBlueprint(
         string name,
         Stats stats,
@@ -118,7 +119,8 @@ public class CreatureCardBlueprint : CardBlueprint {
         Energy costs,
         F.InstantiateOriginal instantiateFunc,
         GameObject prefab
-    ) : base(name, effects.Concat(new List<Effect>{ new SpawnEffect(stats) }).ToList(), costs, instantiateFunc, prefab) {
+    ) : base(name, effects.Concat(new List<Effect>{ new SpawnCreatureEffect(name, stats) }).ToList(), costs, instantiateFunc, prefab) {
+        this.stats = stats;
     }
 
     public override Card MakeCard()

@@ -9,7 +9,9 @@ public class CreatureArea : Area<CreatureCollection, CreatureEntity, CreatureObj
     public GameObject creatureObjectPrefab;
 
     public override CreatureObject resolvePrefab(CreatureEntity card) {
-        return Instantiate(creatureObjectPrefab).GetComponent<CreatureObject>();
+        var obj = Instantiate(creatureObjectPrefab).GetComponent<CreatureObject>();
+        obj.Instantiate(card, () => { Debug.Log("Entity used!"); });
+        return obj;
     }
 
     Vector3[] positions = new Vector3[] {

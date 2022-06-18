@@ -11,11 +11,20 @@ public abstract class CardObject : MonoBehaviour {
     public void Instantiate(Card card, Action triggerUse) {
         this.card = card;
         this.triggerUse = triggerUse;
+
+        {var x = transform.Find("NameObject").gameObject;
+        var y = x.GetComponent<TMPro.TextMeshPro>();
+        y.text = card.name;}
+ 
+
+        {var x = transform.Find("CostObject").gameObject;
+        var y = x.GetComponent<TMPro.TextMeshPro>();
+        y.text = card.costs.ToString();}
+
+        doInstantiate(card);
     }
 
-    public override string ToString() {
-        return this.card.name;
-    }
+    protected abstract void doInstantiate(Card card);
 
     private void OnMouseDown() {
         triggerUse();

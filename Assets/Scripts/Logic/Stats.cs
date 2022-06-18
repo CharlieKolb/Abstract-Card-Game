@@ -8,4 +8,8 @@ public class Stats
         this.attack = attack;
         this.health = health;
     }
+
+    public override string ToString() {
+        return attack + "/" + health;
+    }
 }

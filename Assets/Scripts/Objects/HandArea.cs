@@ -55,7 +55,7 @@ public class HandArea : Area<Hand, Card, CardObject> {
             var card = collection[i];
             var gameObj = objectMapper[card].gameObject;
             gameObj.SetActive(true);
-            gameObj.transform.parent = this.transform;
+            gameObj.transform.SetParent(this.transform); // As opposed to setParent this doesn't mess with the rotation
 
             var width = gameObj.transform.GetComponent<BoxCollider>().bounds.size.z;
             targetPositions.Add(new Vector3(width * cl[i], 0, 0));

@@ -29,12 +29,14 @@ public class SelfDrawEffect : Effect
     }
 }
 
-public class SpawnEffect : Effect
+public class SpawnCreatureEffect : Effect
 {
     Stats stats;
+    string name;
 
-    public SpawnEffect(Stats stats) {
+    public SpawnCreatureEffect(string name, Stats stats) {
         this.stats = stats;
+        this.name = name;
     }
 
     public override bool canApply(Player owner) {
@@ -46,7 +48,7 @@ public class SpawnEffect : Effect
     {
         var board = owner.side.creatures;
         var i = 0;
-        while (i < board.Count && !board.tryPlay(new CreatureEntity(owner, stats), i, getContext())) {
+        while (i < board.Count && !board.tryPlay(new CreatureEntity(owner, name, stats), i, getContext())) {
             i++;
             if (i == board.Count) throw new System.Exception("Tried to play card on full board!");
         }

@@ -1,3 +1,5 @@
+using System.Linq;
+
 public class Energy {
     public int red = 0;
     public int green = 0;
@@ -56,5 +58,9 @@ public class Energy {
     public Energy WithBlue(int val) {
         this.blue = val;
         return this;
+    }
+
+    public override string ToString() {
+        return string.Concat(Enumerable.Repeat("R", red).Concat(Enumerable.Repeat("G", green)).Concat(Enumerable.Repeat("B", blue)));
     }
 }

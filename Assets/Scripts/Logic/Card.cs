@@ -4,6 +4,7 @@ using UnityEngine;
 public abstract class Card : Entity {
     protected CardBlueprint cardBP;
 
+    public Energy costs => cardBP.costs;
     public string name => cardBP.cardName;
 
     public Card(CardBlueprint cardBP) {
@@ -23,5 +24,8 @@ public abstract class Card : Entity {
 }
 
 public class CreatureCard : Card {
-    public CreatureCard(CreatureCardBlueprint cardBP) : base(cardBP) {}
+    public Stats stats;
+    public CreatureCard(CreatureCardBlueprint cardBP) : base(cardBP) {
+        stats = cardBP.stats;
+    }
 }
