@@ -190,6 +190,7 @@ public class Deck : CardCollection
                 result.add(key.MakeCard());
             }
         }
+        result.Shuffle();
         return result;
     }
 

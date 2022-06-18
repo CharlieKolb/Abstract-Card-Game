@@ -6,9 +6,9 @@ public class CardGamePlayerController : AbstractCardGameController {
     protected override void doInstantiate() {
         handArea.onCardUse.AddListener((cardObject) => {
             var card = cardObject.card;
-            if (card.canUseFromHand()) {
+            if (card.canUseFromHand(player)) {
                 handArea.collection.remove(card);
-                card.use();
+                card.use(player);
             }
         });
     }

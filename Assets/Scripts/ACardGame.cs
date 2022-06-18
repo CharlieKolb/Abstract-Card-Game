@@ -35,15 +35,16 @@ public class Side
         creatures = new CreatureCollection();
         graveyard = new Graveyard();
         hp = new HP();
-        maxResources = new Resources(5);
-        resources = new Resources(maxResources.cost);
+        maxResources = Resources.FromRed(5).WithGreen(5).WithBlue(5); 
+        
+        resources = new Resources(maxResources);
     }
 
     public bool hasOptions()
     {
         foreach (var e in hand.getExisting())
         {
-            if (e.value.canUseFromHand()) return true;
+            if (e.value.canUseFromHand(player)) return true;
         }
 
         return false;
@@ -73,9 +74,9 @@ public class CardBPMaker
         this.prefab = prefab;
     }
 
-    public CardBlueprint makeCreatureBP(string name, Stats stats, List<Effect> effects = null)
+    public CreatureCardBlueprint makeCreatureBP(string name, Stats stats, Resources costs, List<Effect> effects = null)
     {
-        return new CreatureCardBlueprint(name, stats, effects != null ? effects : new List<Effect>(), func, prefab);
+        return new CreatureCardBlueprint(name, stats, effects != null ? effects : new List<Effect>(), costs, func, prefab);
     }
 }
 
@@ -84,6 +85,7 @@ public abstract class CardBlueprint
 {
     public string cardName;
     public List<Effect> effects;
+    public Resources costs;
 
     public delegate T InstantiateOriginal<T>(GameObject original) where T : UnityEngine.Object;
 
@@ -92,11 +94,12 @@ public abstract class CardBlueprint
 
 
 
-    public CardBlueprint(string name, List<Effect> effects, F.InstantiateOriginal instantiateFunc, GameObject prefab)
+    public CardBlueprint(string name, List<Effect> effects, Resources costs, F.InstantiateOriginal instantiateFunc, GameObject prefab)
     {
         cardName = name;
         instantiate = instantiateFunc;
         this.effects = effects;
+        this.costs = costs;
         this.prefab = prefab;
     }
 
@@ -112,9 +115,10 @@ public class CreatureCardBlueprint : CardBlueprint {
         string name,
         Stats stats,
         List<Effect> effects,
+        Resources costs,
         F.InstantiateOriginal instantiateFunc,
         GameObject prefab
-    ) : base(name, effects.Concat(new List<Effect>{ new SpawnEffect(stats) }).ToList(), instantiateFunc, prefab) {
+    ) : base(name, effects.Concat(new List<Effect>{ new SpawnEffect(stats) }).ToList(), costs, instantiateFunc, prefab) {
     }
 
     public override Card MakeCard()
@@ -188,6 +192,10 @@ public static class GS
     public static GameActionHandler<EntityPayload> entityActionHandler = new GameActionHandler<EntityPayload>();
     public static GameActionHandler<BoardEntityPayload> boardActionHandler = new GameActionHandler<BoardEntityPayload>();
     public static GameActionHandler<CreaturePayload> creatureActionHandler = new GameActionHandler<CreaturePayload>();
+
+
+    public static GameActionHandler<ResourcesPayload> resourcesActionHandler = new GameActionHandler<ResourcesPayload>();
+
 
     public static bool debug = true;
 
@@ -346,17 +354,17 @@ public class ACardGame : MonoBehaviour
         var maker = new CardBPMaker(Instantiate, cardPrefab);
 
         var deckBp1 = new DeckBlueprint(new Dictionary<CardBlueprint, int>{
-            { maker.makeCreatureBP("cardA", new Stats(3,3)), 5 },
-            { maker.makeCreatureBP("cardB", new Stats(2,1)), 5 },
-            { maker.makeCreatureBP("cardC", new Stats(3,4)), 5 },
-            { maker.makeCreatureBP("cardD", new Stats(3,2)), 5 },
+            { maker.makeCreatureBP("cardA", new Stats(3,3), Resources.FromRed(3)), 5 },
+            { maker.makeCreatureBP("cardB", new Stats(2,1), Resources.FromGreen(3)), 5 },
+            { maker.makeCreatureBP("cardC", new Stats(3,4), Resources.FromBlue(3)), 5 },
+            { maker.makeCreatureBP("cardD", new Stats(3,2), Resources.FromRed(6)), 5 },
         });
 
         var deckBp2 = new DeckBlueprint(new Dictionary<CardBlueprint, int>{
-            { maker.makeCreatureBP("cardA", new Stats(3,3)), 5 },
-            { maker.makeCreatureBP("cardB", new Stats(2,1)), 5 },
-            { maker.makeCreatureBP("cardC", new Stats(3,4)), 5 },
-            { maker.makeCreatureBP("cardD", new Stats(3,2)), 5 },
+            { maker.makeCreatureBP("cardA", new Stats(3,3), Resources.FromRed(3)), 5 },
+            { maker.makeCreatureBP("cardB", new Stats(2,1), Resources.FromGreen(3)), 5 },
+            { maker.makeCreatureBP("cardC", new Stats(3,4), Resources.FromBlue(3)), 5 },
+            { maker.makeCreatureBP("cardD", new Stats(3,2), Resources.FromRed(6)), 5 },
         });
 
 

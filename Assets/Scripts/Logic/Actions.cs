@@ -25,11 +25,11 @@ class Differ<Content> {
 }
 
 
-public interface IBase {}
+public interface IPayloadBase {}
 
 public interface IKeyBase {}
 
-public abstract class GameAction<P> where P : IBase {
+public abstract class GameAction<P> where P : IPayloadBase {
     public string key;
     public P payload;
 
@@ -45,7 +45,7 @@ public class CardActionKey : IKeyBase {
     public static string DISCARD = "DISCARD";
 }
 
-public class CardActionPayload : IBase {
+public class CardActionPayload : IPayloadBase {
     public Card card;
 
     public CardActionPayload(Card card) {
@@ -93,7 +93,13 @@ public class DeckActionKey : CardCollectionActionKey  {
 public class GraveyardActionKey : CardCollectionActionKey  {
 }
 
-public class CollectionPayload<C, E> : IBase where E : Entity where C : Collection<E> {
+
+public class ResourcesActionKey : IKeyBase {
+    public static string PAY = "PAY";
+}
+
+
+public class CollectionPayload<C, E> : IPayloadBase where E : Entity where C : Collection<E> {
     public C collection;
     public Diff<E> diff;
 
@@ -111,7 +117,7 @@ public class BoardAreaPayload<E> : CollectionPayload<BoardCollection<E>, E> wher
 public class CreatureAreaPayload : BoardAreaPayload<CreatureEntity> { public CreatureAreaPayload(CreatureCollection c, Diff<CreatureEntity> diff = null) : base(c, diff) {} }
 
 
-public class EntityPayload<E> : IBase where E : Entity{
+public class EntityPayload<E> : IPayloadBase where E : Entity{
     public Entity entity;
 
     public EntityPayload(E entity) {
@@ -122,3 +128,14 @@ public class EntityPayload : EntityPayload<Entity> { public EntityPayload(Entity
 public class BoardEntityPayload<E> : EntityPayload<E> where E : BoardEntity { public BoardEntityPayload(E e) : base(e) {} }
 public class BoardEntityPayload : EntityPayload<BoardEntity> { public BoardEntityPayload(BoardEntity e) : base(e) {} }
 public class CreaturePayload : BoardEntityPayload<CreatureEntity> { public CreaturePayload(CreatureEntity e) : base(e) {} }
+
+
+public class ResourcesPayload : IPayloadBase {
+    public Resources resources;
+    public Entity source;
+
+    public ResourcesPayload(Resources resources, Entity source = null) {
+        this.resources = resources;
+        this.source = source;
+    }
+}
