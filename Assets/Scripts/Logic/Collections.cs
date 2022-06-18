@@ -173,12 +173,6 @@ public class Deck : CardCollection
         return card;
     }
 
-    // public override void postAdd(Card c)
-    // {
-    //     base.postAdd(c);
-    //     Shuffle();
-    // }
-
     public static Deck FromBlueprint(DeckBlueprint deck)
     {
         var result = new Deck();

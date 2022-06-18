@@ -11,14 +11,14 @@ public abstract class Card : Entity {
     }
 
     public void use(Player owner) {
-        GS.resourcesActionHandler.Invoke(ResourcesActionKey.PAY, new ResourcesPayload(cardBP.costs, this), () => {
-            owner.side.resources = owner.side.resources.Without(cardBP.costs);
+        GS.energyActionHandler.Invoke(EnergyActionKey.PAY, new EnergyPayload(cardBP.costs, this), () => {
+            owner.side.energy = owner.side.energy.Without(cardBP.costs);
         });
         cardBP.effects.ForEach(x => x.apply(owner));
     }
 
     public bool canUseFromHand(Player owner) {
-        return cardBP.costs.canBePaid(owner.side.resources) && cardBP.effects.TrueForAll(x => x.canApply(owner));
+        return cardBP.costs.canBePaid(owner.side.energy) && cardBP.effects.TrueForAll(x => x.canApply(owner));
     }
 }
 

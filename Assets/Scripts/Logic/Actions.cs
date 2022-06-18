@@ -94,7 +94,7 @@ public class GraveyardActionKey : CardCollectionActionKey  {
 }
 
 
-public class ResourcesActionKey : IKeyBase {
+public class EnergyActionKey : IKeyBase {
     public static string PAY = "PAY";
 }
 
@@ -130,11 +130,11 @@ public class BoardEntityPayload : EntityPayload<BoardEntity> { public BoardEntit
 public class CreaturePayload : BoardEntityPayload<CreatureEntity> { public CreaturePayload(CreatureEntity e) : base(e) {} }
 
 
-public class ResourcesPayload : IPayloadBase {
-    public Resources resources;
+public class EnergyPayload : IPayloadBase {
+    public Energy resources;
     public Entity source;
 
-    public ResourcesPayload(Resources resources, Entity source = null) {
+    public EnergyPayload(Energy resources, Entity source = null) {
         this.resources = resources;
         this.source = source;
     }

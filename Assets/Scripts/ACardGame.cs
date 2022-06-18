@@ -24,8 +24,8 @@ public class Side
     public Deck deck;
     public Graveyard graveyard;
     public HP hp;
-    public Resources resources;
-    public Resources maxResources;
+    public Energy energy;
+    public Energy maxEnergy;
 
     public Side(DeckBlueprint deckBlueprint, Player player) {
         deck = Deck.FromBlueprint(deckBlueprint);
@@ -35,9 +35,9 @@ public class Side
         creatures = new CreatureCollection();
         graveyard = new Graveyard();
         hp = new HP();
-        maxResources = Resources.FromRed(5).WithGreen(5).WithBlue(5); 
+        maxEnergy = Energy.FromRed(5).WithGreen(5).WithBlue(5); 
         
-        resources = new Resources(maxResources);
+        energy = new Energy(maxEnergy);
     }
 
     public bool hasOptions()
@@ -74,7 +74,7 @@ public class CardBPMaker
         this.prefab = prefab;
     }
 
-    public CreatureCardBlueprint makeCreatureBP(string name, Stats stats, Resources costs, List<Effect> effects = null)
+    public CreatureCardBlueprint makeCreatureBP(string name, Stats stats, Energy costs, List<Effect> effects = null)
     {
         return new CreatureCardBlueprint(name, stats, effects != null ? effects : new List<Effect>(), costs, func, prefab);
     }
@@ -85,7 +85,7 @@ public abstract class CardBlueprint
 {
     public string cardName;
     public List<Effect> effects;
-    public Resources costs;
+    public Energy costs;
 
     public delegate T InstantiateOriginal<T>(GameObject original) where T : UnityEngine.Object;
 
@@ -94,7 +94,7 @@ public abstract class CardBlueprint
 
 
 
-    public CardBlueprint(string name, List<Effect> effects, Resources costs, F.InstantiateOriginal instantiateFunc, GameObject prefab)
+    public CardBlueprint(string name, List<Effect> effects, Energy costs, F.InstantiateOriginal instantiateFunc, GameObject prefab)
     {
         cardName = name;
         instantiate = instantiateFunc;
@@ -115,7 +115,7 @@ public class CreatureCardBlueprint : CardBlueprint {
         string name,
         Stats stats,
         List<Effect> effects,
-        Resources costs,
+        Energy costs,
         F.InstantiateOriginal instantiateFunc,
         GameObject prefab
     ) : base(name, effects.Concat(new List<Effect>{ new SpawnEffect(stats) }).ToList(), costs, instantiateFunc, prefab) {
@@ -194,7 +194,7 @@ public static class GS
     public static GameActionHandler<CreaturePayload> creatureActionHandler = new GameActionHandler<CreaturePayload>();
 
 
-    public static GameActionHandler<ResourcesPayload> resourcesActionHandler = new GameActionHandler<ResourcesPayload>();
+    public static GameActionHandler<EnergyPayload> energyActionHandler = new GameActionHandler<EnergyPayload>();
 
 
     public static bool debug = true;
@@ -354,17 +354,17 @@ public class ACardGame : MonoBehaviour
         var maker = new CardBPMaker(Instantiate, cardPrefab);
 
         var deckBp1 = new DeckBlueprint(new Dictionary<CardBlueprint, int>{
-            { maker.makeCreatureBP("cardA", new Stats(3,3), Resources.FromRed(3)), 5 },
-            { maker.makeCreatureBP("cardB", new Stats(2,1), Resources.FromGreen(3)), 5 },
-            { maker.makeCreatureBP("cardC", new Stats(3,4), Resources.FromBlue(3)), 5 },
-            { maker.makeCreatureBP("cardD", new Stats(3,2), Resources.FromRed(6)), 5 },
+            { maker.makeCreatureBP("cardA", new Stats(3,3), Energy.FromRed(3)), 5 },
+            { maker.makeCreatureBP("cardB", new Stats(2,1), Energy.FromGreen(3)), 5 },
+            { maker.makeCreatureBP("cardC", new Stats(3,4), Energy.FromBlue(3)), 5 },
+            { maker.makeCreatureBP("cardD", new Stats(3,2), Energy.FromRed(6)), 5 },
         });
 
         var deckBp2 = new DeckBlueprint(new Dictionary<CardBlueprint, int>{
-            { maker.makeCreatureBP("cardA", new Stats(3,3), Resources.FromRed(3)), 5 },
-            { maker.makeCreatureBP("cardB", new Stats(2,1), Resources.FromGreen(3)), 5 },
-            { maker.makeCreatureBP("cardC", new Stats(3,4), Resources.FromBlue(3)), 5 },
-            { maker.makeCreatureBP("cardD", new Stats(3,2), Resources.FromRed(6)), 5 },
+            { maker.makeCreatureBP("cardA", new Stats(3,3), Energy.FromRed(3)), 5 },
+            { maker.makeCreatureBP("cardB", new Stats(2,1), Energy.FromGreen(3)), 5 },
+            { maker.makeCreatureBP("cardC", new Stats(3,4), Energy.FromBlue(3)), 5 },
+            { maker.makeCreatureBP("cardD", new Stats(3,2), Energy.FromRed(6)), 5 },
         });
 
 
