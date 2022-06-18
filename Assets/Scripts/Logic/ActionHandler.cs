@@ -57,8 +57,10 @@ public class GameActionHandler<ArgType> {
     public ActionHandler<string, ArgType> after = new ActionHandler<string, ArgType>();
 
     public void Invoke(string key, ArgType argType, Action action) {
-        before.Trigger(key, argType);
-        action.Invoke();
-        after.Trigger(key, argType);
+        GS.PushAction(
+            () => before.Trigger(key, argType),
+            action,
+            () => after.Trigger(key, argType)
+        );   
     }
 }

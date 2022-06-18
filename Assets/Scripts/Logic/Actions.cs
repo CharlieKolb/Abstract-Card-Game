@@ -39,6 +39,11 @@ public abstract class GameAction<P> where P : IPayloadBase {
     }
 }
 
+public class PlayerActionKey : IKeyBase {
+    public static string DAMAGED = "DAMAGED";
+    public static string DIES = "DIES";
+}
+
 public class CardActionKey : IKeyBase {
     public static string DRAW = "DRAW";
     public static string USE = "USE";
@@ -62,14 +67,17 @@ public class EntityActionKey : IKeyBase {
 }
 
 public class BoardEntityActionKey : EntityActionKey {
-    public string ON_PLAY = "ON_PLAY"; // any time a board entity enters the board
-    // public string ON_SUMMON = "ON_SUMMON"; // any time a creature is summoned
-    // public string ON_ATTACK = "ON_ATTACK";
-    // public string ON_DEATH = "ON_DEATH"; // any time a creature is killed
-    public string ON_EXIT = "ON_EXIT"; // any time a creature leaves the board
+    public static string PLAY = "ON_PLAY"; // any time a board entity enters the board
+    public static string EXIT = "ON_EXIT"; // any time a creature leaves the board
 }
 
-public class CreatureEntityActionKey : BoardEntityActionKey {}
+public class CreatureEntityActionKey : BoardEntityActionKey {
+    public static string DAMAGED = "DAMAGED";
+    public static string SUMMON = "ON_SUMMON"; // any time a creature is summoned
+    public static string ATTACK = "ON_ATTACK";
+    public static string DEATH = "ON_DEATH"; // any time a creature is killed
+
+}
 
 public class BoardAreaActionKey : CollectionActionKey {}
 
@@ -98,6 +106,13 @@ public class EnergyActionKey : IKeyBase {
     public static string PAY = "PAY";
 }
 
+public class PlayerPayload {
+    public Player target;
+
+    public PlayerPayload(Player target) {
+        this.target = target;
+    }
+}
 
 public class CollectionPayload<C, E> : IPayloadBase where E : Entity where C : Collection<E> {
     public C collection;

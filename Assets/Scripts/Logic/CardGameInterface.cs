@@ -14,6 +14,7 @@ public class Config {
     public bool autoAdvanceTurns = false;
 }
 
+// Todo: use GameActionHandler here
 public abstract class Phase {
     public virtual void onEntry() {}
     public virtual void onExit() {}
@@ -98,10 +99,13 @@ public abstract class TurnGame<Turn, TC, Player>
 
     // Call to pass
     public IEnumerator<bool> advance() {
+        bool gameEnded = false;
+        // stupid workaround, please fix
+        var p1 = getNextPlayer().Take(1).ToArray()[0];
+        var p2 = getNextPlayer().Take(1).ToArray()[0];
+        p1.player.onTrigger = () => gameEnded = true;
+        p2.player.onTrigger = () => gameEnded = true;
         foreach (var controller in getNextPlayer()) {
-            bool gameEnded = false;
-            controller.player.onTrigger = () => gameEnded = true;
-
             var turn = makeTurn();
             turn.startTurn();
             do {

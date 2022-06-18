@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.Events;
 
 using CardGameInterface;
 
@@ -11,6 +12,8 @@ public abstract class Area<Collection, Content, ContentObject> : MonoBehaviour
     where ContentObject : MonoBehaviour
 {
     public Collection collection { get; private set; }
+
+    public UnityEvent<ContentObject> onUse = new UnityEvent<ContentObject>();
 
     protected Dictionary<Content, ContentObject> objectMapper;
 

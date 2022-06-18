@@ -6,7 +6,7 @@ public class CreatureObject : BoardEntityObject
 {
     TMPro.TextMeshPro nameText;
     TMPro.TextMeshPro statsText;
-    CreatureEntity creatureEntity;
+    public CreatureEntity creatureEntity;
 
     protected override void doInstantiate(BoardEntity entity) {
         creatureEntity = (CreatureEntity) entity;

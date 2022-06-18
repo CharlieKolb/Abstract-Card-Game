@@ -12,7 +12,22 @@ public class EffectContext {
     public BoardEntity target;
 
     public Effect effect;
-    public Player player;
+    public Player source;
+
+    public EffectContext WithTarget(BoardEntity target) {
+        this.target = target;
+        return this;
+    }
+
+    public EffectContext WithEffect(Effect effect) {
+        this.effect = effect;
+        return this;
+    }
+
+    public EffectContext WithSource(Player source) {
+        this.source = source;
+        return this;
+    }
 }
 
 
@@ -140,10 +155,16 @@ public class HP
 public class Player : IPlayer
 {
     public Side side;
+    public int lifepoints = 15;
 
     public Player(DeckBlueprint deckBlueprint)
     {
         side = new Side(deckBlueprint, this);
+    }
+
+    public void inflictDamage(int value) {
+        lifepoints -= value;
+        if (lifepoints <= 0) triggerLoss();
     }
 
     public bool hasOptions()
@@ -167,7 +188,6 @@ public class Player : IPlayer
 }
 
 public class GameStateData {
-    public Phases phases;
     public Turn currentTurn;
     public AbstractCardGameController activeController;
     public AbstractCardGameController passiveController;
@@ -179,6 +199,7 @@ public static class GS
     // to be initialized
     public static GameStateData gameStateData = new GameStateData();
     // end
+    public static GameActionHandler<PlayerPayload> playerActionHandler = new GameActionHandler<PlayerPayload>();
     
     public static GameActionHandler<CardActionPayload> cardActionHandler = new GameActionHandler<CardActionPayload>();
 
@@ -210,6 +231,26 @@ public static class GS
             graveyardActionHandler.before.onAll(x => Debug.Log(x.ToString()));
             creatureAreaActionHandler.before.onAll(x => Debug.Log(x.ToString()));
         }
+    }
+
+    // Need an explicit (action, after) stack for cards to interact with queued casts
+    private static List<(Action, Action)> gameStack = new List<(Action, Action)>();
+
+    public static void PushAction(Action before, Action action, Action after) {
+        gameStack.Add((action, after));
+        before(); // might add further calls to the stack
+
+        // assumptions: no interaction removes cards from the stack.
+        //              may instead replace actions with no-ops
+        if (action != gameStack[gameStack.Count - 1].Item1) {
+            throw new Exception("GameStack invariant broken");
+        }
+        action();
+        if (action != gameStack[gameStack.Count - 1].Item1) {
+            throw new Exception("GameStack invariant broken");
+        }
+        gameStack.RemoveAt(gameStack.Count - 1);
+        after();
     }
 }
 
@@ -245,15 +286,15 @@ public class PhaseUtil
     }
 }
 
-public class Phases
+public static class Phases
 {
-    public GamePhase drawPhase;
-    public GamePhase mainPhase1;
-    public GamePhase battlePhase;
-    public GamePhase mainPhase2;
-    public GamePhase endPhase;
+    public static GamePhase drawPhase;
+    public static GamePhase mainPhase1;
+    public static GamePhase battlePhase;
+    public static GamePhase mainPhase2;
+    public static GamePhase endPhase;
 
-    public Phases()
+    static Phases()
     {
         Action<GamePhase> defaultEntry = (GamePhase p) => { };
         Action<GamePhase> defaultExit = (GamePhase p) => { };
@@ -273,20 +314,18 @@ public class TurnContext : ITurnContext {
 
 public class Turn : ITurn<TurnContext>
 {
-    public Turn(TurnContext tc) : base(GS.gameStateData.phases.drawPhase, tc)
+    public Turn(TurnContext tc) : base(Phases.drawPhase, tc)
     {}
 
     public override void startTurn()
     {
-        this.currentPhase = GS.gameStateData.phases.drawPhase;
+        this.currentPhase = Phases.drawPhase;
         GS.gameStateData.currentTurn = this;
     }
 }
 
 class MyCardGame : TurnGame<Turn, TurnContext, AbstractCardGameController>
 {
-    public Phases phases;
-
     public MyCardGame(AbstractCardGameController p1, DeckBlueprint d1, AbstractCardGameController p2, DeckBlueprint d2)
     {
         Player player1 = new Player(d1);
@@ -295,8 +334,6 @@ class MyCardGame : TurnGame<Turn, TurnContext, AbstractCardGameController>
         p2.Instantiate(player2);
         GS.gameStateData.activeController = p1;
         GS.gameStateData.passiveController = p2;
-
-        GS.gameStateData.phases = new Phases();
     }
 
     public override Turn makeTurn() {
@@ -356,8 +393,8 @@ public class ACardGame : MonoBehaviour
         var maker = new CardBPMaker(Instantiate, cardPrefab);
 
         var deckBp1 = new DeckBlueprint(new Dictionary<CardBlueprint, int>{
-            { maker.makeCreatureBP("cardA", new Stats(3,3), Energy.FromRed(3)), 5 },
-            { maker.makeCreatureBP("cardB", new Stats(2,1), Energy.FromGreen(3)), 5 },
+            { maker.makeCreatureBP("cardA", new Stats(6,6), Energy.FromRed(3)), 5 },
+            { maker.makeCreatureBP("cardB", new Stats(6,6), Energy.FromGreen(3)), 5 },
             { maker.makeCreatureBP("cardC", new Stats(3,4), Energy.FromBlue(3)), 5 },
             { maker.makeCreatureBP("cardD", new Stats(3,2), Energy.FromRed(6)), 5 },
         });

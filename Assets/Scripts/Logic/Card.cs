@@ -26,6 +26,6 @@ public abstract class Card : Entity {
 public class CreatureCard : Card {
     public Stats stats;
     public CreatureCard(CreatureCardBlueprint cardBP) : base(cardBP) {
-        stats = cardBP.stats;
+        stats = new Stats(cardBP.stats);
     }
 }

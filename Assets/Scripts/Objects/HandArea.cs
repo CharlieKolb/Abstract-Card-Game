@@ -10,13 +10,10 @@ public class HandArea : Area<Hand, Card, CardObject> {
     public GameObject creatureCardPrefab;
     // public GameObject spellCardPrefab;
 
-    public UnityEvent<CardObject> onCardUse = new UnityEvent<CardObject>();
-
-
     public override CardObject resolvePrefab(Card card) {
         if (card is CreatureCard) {
             var obj = Instantiate(creatureCardPrefab).GetComponent<CreatureCardObject>();
-            obj.Instantiate(card, () => onCardUse.Invoke(obj));
+            obj.Instantiate(card, () => onUse.Invoke(obj));
             return obj;
         }
 

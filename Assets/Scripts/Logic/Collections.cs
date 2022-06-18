@@ -26,6 +26,13 @@ public abstract class Collection<Content> where Content : Entity
         get { return content[i]; }
     }
 
+    public int find(Content c) {
+        foreach (var x in getExisting()) {
+            if (x.value == c) return x.index;
+        }
+        return -1;
+    }
+
     public IEnumerable<Element<Content>> getExisting() {
         for(var i = 0; i < content.Count; ++i) {
             var e = content[i];
@@ -88,18 +95,29 @@ public abstract class BoardCollection<E> : Collection<E>
         var cleared = new List<E>();
         foreach (var entityCtx in getExisting()) {
             var entity = entityCtx.value;
-
-            if (condition.Invoke(entityCtx)) { 
+            
+            Debug.Log("ABC");
+            if (condition.Invoke(entityCtx)) {
+                Debug.Log("DEF");
+                InvokeCountChanged(Differ<E>.FromRemoved(entity), () => {
+                    content[entityCtx.index] = null;
+                    cleared.Add(entity);
+                });
             };
         }
-
-        // if (cleared.Count > 0) Trigger(triggers.ON_COUNT_CHANGE, CollectionContextFactory<E>.FromRemoved(cleared.ToArray()));
 
         return cleared;
     }
 
     public E clearEntity(int index, EffectContext effectContext) {
         var list = clearEntities(x => x.index == index, effectContext);
+        if (list.Count == 0) return null;
+
+        return list[0];
+    }
+
+    public E clearEntity(E entity, EffectContext effectContext) {
+        var list = clearEntities(x => x.value == entity, effectContext);
         if (list.Count == 0) return null;
 
         return list[0];

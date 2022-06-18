@@ -4,12 +4,12 @@ using UnityEngine;
 public class CardGamePlayerController : AbstractCardGameController {
         
     protected override void doInstantiate() {
-        handArea.onCardUse.AddListener((cardObject) => {
-            var card = cardObject.card;
-            if (card.canUseFromHand(player)) {
-                handArea.collection.remove(card);
-                card.use(player);
-            }
+        handArea.onUse.AddListener((cardObject) => {
+            tryUseCardFromHand(cardObject.card);
+        });
+
+        creatureArea.onUse.AddListener((creatureObject) => {
+            tryUseCreature(creatureObject.creatureEntity);
         });
     }
 
