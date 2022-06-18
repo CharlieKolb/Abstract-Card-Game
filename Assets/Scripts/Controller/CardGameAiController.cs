@@ -3,12 +3,23 @@ using UnityEngine;
 
 public class CardGameAiController : AbstractCardGameController {
     private bool willPassTurn = true;
+
+    private float delayBetweenActions = 1f;
+    private float activeDelayLeft;
     
     protected override void doInstantiate() {
+        activeDelayLeft = delayBetweenActions;
+        GS.entityActionHandler.after.onAll((_) => activeDelayLeft = 0.5f);
+        GS.cardCollectionActionHandler.after.onAll((_) => activeDelayLeft = 0.5f);
     }
 
     public void Update() {
-        if (this != GS.activeController) return;
+        activeDelayLeft -= Time.deltaTime;
+        if (activeDelayLeft > 0) return;
+
+        activeDelayLeft = delayBetweenActions;
+
+        if (this != GS.gameStateData.activeController) return;
 
         if (willPassTurn) return;
 

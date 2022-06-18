@@ -6,6 +6,6 @@ public class Resources {
     }
 
     public bool canBePaid() {
-        return this.cost <= GS.activeController.player.side.resources.cost;
+        return this.cost <= GS.gameStateData.activeController.player.side.resources.cost;
     }    
 }

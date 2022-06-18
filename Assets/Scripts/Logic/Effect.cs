@@ -25,7 +25,7 @@ public class SelfDrawEffect : Effect
 {
     protected override void doApply()
     {
-        GS.activeController.player.drawCard();
+        GS.gameStateData.activeController.player.drawCard();
     }
 }
 
@@ -38,13 +38,13 @@ public class SpawnEffect : Effect
     }
 
     public override bool canApply() {
-        var board = GS.activeController.player.side.creatures;
+        var board = GS.gameStateData.activeController.player.side.creatures;
         return board.getExisting().Count() < board.Count;
     }
 
     protected override void doApply()
     {
-        var board = GS.activeController.player.side.creatures;
+        var board = GS.gameStateData.activeController.player.side.creatures;
         var i = 0;
         while (i < board.Count && !board.tryPlay(new CreatureEntity(stats), i, getContext())) {
             i++;

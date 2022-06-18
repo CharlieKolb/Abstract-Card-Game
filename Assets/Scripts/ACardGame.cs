@@ -160,16 +160,20 @@ public class Player : IPlayer
     }
 }
 
+public class GameStateData {
+    public Phases phases;
+    public Turn currentTurn;
+    public AbstractCardGameController activeController;
+    public AbstractCardGameController passiveController;
+
+}
+
 public static class GS
 {
     // to be initialized
-    public static Phases phases;
-    public static Turn currentTurn;
-    public static AbstractCardGameController activeController;
-    public static AbstractCardGameController passiveController;
+    public static GameStateData gameStateData = new GameStateData();
     // end
     
-    // todo: finish complete tree and add listeners to cascade calls (see Hand)
     public static GameActionHandler<CardActionPayload> cardActionHandler = new GameActionHandler<CardActionPayload>();
 
     public static GameActionHandler<CardCollectionPayload> cardCollectionActionHandler = new GameActionHandler<CardCollectionPayload>();
@@ -180,6 +184,10 @@ public static class GS
     
     
     public static GameActionHandler<CreatureAreaPayload> creatureAreaActionHandler = new GameActionHandler<CreatureAreaPayload>();
+
+    public static GameActionHandler<EntityPayload> entityActionHandler = new GameActionHandler<EntityPayload>();
+    public static GameActionHandler<BoardEntityPayload> boardActionHandler = new GameActionHandler<BoardEntityPayload>();
+    public static GameActionHandler<CreaturePayload> creatureActionHandler = new GameActionHandler<CreaturePayload>();
 
     public static bool debug = true;
 
@@ -223,7 +231,7 @@ public class PhaseUtil
 {
     public static void drawCard(GamePhase p)
     {
-        GS.activeController.player.drawCard();
+        GS.gameStateData.activeController.player.drawCard();
     }
 }
 
@@ -255,13 +263,13 @@ public class TurnContext : ITurnContext {
 
 public class Turn : ITurn<TurnContext>
 {
-    public Turn(TurnContext tc) : base(GS.phases.drawPhase, tc)
+    public Turn(TurnContext tc) : base(GS.gameStateData.phases.drawPhase, tc)
     {}
 
     public override void startTurn()
     {
-        this.currentPhase = GS.phases.drawPhase;
-        GS.currentTurn = this;
+        this.currentPhase = GS.gameStateData.phases.drawPhase;
+        GS.gameStateData.currentTurn = this;
     }
 }
 
@@ -275,10 +283,10 @@ class MyCardGame : TurnGame<Turn, TurnContext, AbstractCardGameController>
         Player player2 = new Player(d2);
         p1.Instantiate(player1);
         p2.Instantiate(player2);
-        GS.activeController = p1;
-        GS.passiveController = p2;
+        GS.gameStateData.activeController = p1;
+        GS.gameStateData.passiveController = p2;
 
-        GS.phases = new Phases();
+        GS.gameStateData.phases = new Phases();
     }
 
     public override Turn makeTurn() {
@@ -289,10 +297,10 @@ class MyCardGame : TurnGame<Turn, TurnContext, AbstractCardGameController>
     {
         while (true)
         {
-            yield return GS.activeController;
-            var tmp = GS.activeController;
-            GS.activeController = GS.passiveController;
-            GS.passiveController = tmp;
+            yield return GS.gameStateData.activeController;
+            var tmp = GS.gameStateData.activeController;
+            GS.gameStateData.activeController = GS.gameStateData.passiveController;
+            GS.gameStateData.passiveController = tmp;
         }
     }
 }
@@ -320,7 +328,7 @@ public class ACardGame : MonoBehaviour
         var advancer = myCardGame.advance();
         while (advancer.MoveNext())
         {
-            var controller = GS.activeController;
+            var controller = GS.gameStateData.activeController;
             while (!controller.passesTurn())
             {
                 yield return new WaitForEndOfFrame();

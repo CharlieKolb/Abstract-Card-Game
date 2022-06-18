@@ -109,3 +109,16 @@ public class GraveyardPayload : CollectionPayload<Graveyard, Card> { public Grav
 
 public class BoardAreaPayload<E> : CollectionPayload<BoardCollection<E>, E> where E : BoardEntity { public BoardAreaPayload(BoardCollection<E> b, Diff<E> diff = null) : base(b, diff) {} }
 public class CreatureAreaPayload : BoardAreaPayload<CreatureEntity> { public CreatureAreaPayload(CreatureCollection c, Diff<CreatureEntity> diff = null) : base(c, diff) {} }
+
+
+public class EntityPayload<E> : IBase where E : Entity{
+    public Entity entity;
+
+    public EntityPayload(E entity) {
+        this.entity = entity;
+    }
+}
+public class EntityPayload : EntityPayload<Entity> { public EntityPayload(Entity e) : base(e) {} }
+public class BoardEntityPayload<E> : EntityPayload<E> where E : BoardEntity { public BoardEntityPayload(E e) : base(e) {} }
+public class BoardEntityPayload : EntityPayload<BoardEntity> { public BoardEntityPayload(BoardEntity e) : base(e) {} }
+public class CreaturePayload : BoardEntityPayload<CreatureEntity> { public CreaturePayload(CreatureEntity e) : base(e) {} }
