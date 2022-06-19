@@ -14,26 +14,19 @@ public class Config {
     public bool autoAdvanceTurns = false;
 }
 
-// Todo: use GameActionHandler here
-public abstract class Phase {
-    public virtual void onEntry() {}
-    public virtual void onExit() {}
-
-    public virtual bool hasOptions() { return false; }
- 
-    public virtual Phase nextPhase() { return null; }
-}
-
 public class ITurnContext {}
 
 public abstract class ITurn<TC> where TC : ITurnContext {
-    public Phase currentPhase;
+    public GamePhase currentPhase;
     public TC turnContext;
 
-    protected ITurn(Phase startPhase, TC turnContext) {
+    public delegate void EndTurn();
+    public event EndTurn endTurn;
+
+
+    protected ITurn(GamePhase startPhase, TC turnContext) {
         this.turnContext = turnContext;
         currentPhase = startPhase;
-        startPhase.onEntry();
     }
 
     public bool hasOptions() {
@@ -43,17 +36,18 @@ public abstract class ITurn<TC> where TC : ITurnContext {
     // return true if turn can be advanced again
     public bool advance() {
         var nextPhase = currentPhase.nextPhase();
-        currentPhase.onExit();
-        onChange(currentPhase, nextPhase);
+        currentPhase.executeExit();
+        if (nextPhase == null) {
+            endTurn.Invoke();
+        }
+
         if (nextPhase != null) {
             currentPhase = nextPhase;
-            currentPhase.onEntry();
+            currentPhase.executeEntry();
             return true;
         }
         return false;
     }
-
-    public void onChange(Phase current, Phase next) {}
 
     public abstract void startTurn();
 }
@@ -97,22 +91,21 @@ public abstract class TurnGame<Turn, TC, Player>
 
     public abstract Turn makeTurn();
 
+    public bool gameEnded = false;
+
     // Call to pass
     public IEnumerator<bool> advance() {
-        bool gameEnded = false;
-        // stupid workaround, please fix
-        var p1 = getNextPlayer().Take(1).ToArray()[0];
-        var p2 = getNextPlayer().Take(1).ToArray()[0];
-        p1.player.onTrigger = () => gameEnded = true;
-        p2.player.onTrigger = () => gameEnded = true;
         foreach (var controller in getNextPlayer()) {
             var turn = makeTurn();
+            bool turnRunning = true;
+            turn.endTurn += () => {
+                turnRunning = false;
+            };
             turn.startTurn();
             do {
-                if (gameEnded) yield return true;
-                yield return false;
-            } while (turn.advance());
-
+                if (gameEnded) yield break;
+                yield return true;
+            } while (turnRunning);
         }
         yield break;
     }

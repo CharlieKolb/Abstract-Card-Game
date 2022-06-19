@@ -39,6 +39,11 @@ public abstract class GameAction<P> where P : IPayloadBase {
     }
 }
 
+public class PhaseActionKey : IKeyBase {
+    public static string ENTER = "ENTER";
+    public static string EXIT = "EXIT";
+}
+
 public class PlayerActionKey : IKeyBase {
     public static string DAMAGED = "DAMAGED";
     public static string DIES = "DIES";
@@ -111,6 +116,14 @@ public class PlayerPayload {
 
     public PlayerPayload(Player target) {
         this.target = target;
+    }
+}
+
+public class PhasePayload {
+    public GamePhase phase;
+
+    public PhasePayload(GamePhase phase) {
+        this.phase = phase;
     }
 }
 

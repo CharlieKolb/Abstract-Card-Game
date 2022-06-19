@@ -13,16 +13,8 @@ public class CardGamePlayerController : AbstractCardGameController {
         });
     }
 
-    bool keyPressed = false;
     void Update() {
-        if (!keyPressed)
-            keyPressed = Input.GetKeyDown(KeyCode.A);
-    }
-
-    public override bool passesTurn() {
-        var didPass = keyPressed;
-        keyPressed = false;
-        return didPass;
+        if (Input.GetKeyDown(KeyCode.A)) tryPassPhase();
     }
 
 }

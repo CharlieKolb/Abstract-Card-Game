@@ -23,8 +23,7 @@ public abstract class AbstractCardGameController : MonoBehaviour {
 
     protected void tryUseCardFromHand(Card card) {
         if (card.canUseFromHand(player)) {
-            handArea.collection.remove(card);
-            card.use(player);
+            GS.EnqueueInteraction(new PlayCardInteraction(card, handArea, player));
         }
     }
 
@@ -37,7 +36,6 @@ public abstract class AbstractCardGameController : MonoBehaviour {
             var opponent = otherArea.collection[idx];
             if (opponent == null) {
                 // direct attack
-                Debug.Log("FGH");
                 new DamagePlayerEffect(creature.stats.attack, GS.gameStateData.passiveController.player).apply(player);
             }
             else {
@@ -48,5 +46,10 @@ public abstract class AbstractCardGameController : MonoBehaviour {
         }
     }
 
-    public abstract bool passesTurn();
+    public void tryPassPhase() {
+        if (GS.gameStateData.activeController != this) return;
+
+        // Note that this is current spammable, may wish to check whether there's already a passPhase object in the queue
+        GS.EnqueueInteraction(new PassPhaseInteraction());
+    }
 }

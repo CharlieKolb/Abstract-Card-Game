@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -219,6 +220,7 @@ public static class GS
 
     public static GameActionHandler<EnergyPayload> energyActionHandler = new GameActionHandler<EnergyPayload>();
 
+    public static GameActionHandler<PhasePayload> phaseActionHandler = new GameActionHandler<PhasePayload>();
 
     public static bool debug = true;
 
@@ -247,14 +249,51 @@ public static class GS
         }
         action();
         if (action != gameStack[gameStack.Count - 1].Item1) {
-            throw new Exception("GameStack invariant broken");
+            throw new Exception("GameStack invariant broken 2");
         }
         gameStack.RemoveAt(gameStack.Count - 1);
         after();
     }
+
+    private static ConcurrentQueue<Interaction> interactionQueue = new ConcurrentQueue<Interaction>();
+    public static void EnqueueInteraction(Interaction interaction) {
+        interaction.execute();
+        // interactionQueue.Enqueue(interaction);
+    }
 }
 
-public class GamePhase : Phase
+public abstract class Interaction {
+    public abstract void execute();
+}
+
+public class PassPhaseInteraction : Interaction {
+    public override void execute()
+    {
+        GS.gameStateData.currentTurn.advance();
+    }
+}
+
+public class PlayCardInteraction : Interaction {
+    private Card target;
+    private HandArea handArea;
+    private Player owner;
+
+    public PlayCardInteraction(Card target, HandArea handArea, Player owner) {
+        this.target = target;
+        this.handArea = handArea;
+        this.owner = owner;
+    }
+
+    public override void execute()
+    {
+        handArea.collection.remove(target);
+        target.use(owner);
+    }
+}
+
+// Note that even before the beginning of a phase currentPhase of a Turn will already be changed
+// Similarly we are still in the old turn after end of turn
+public class GamePhase
 {
     public string phaseName;
     Func<GamePhase> _nextPhase;
@@ -270,12 +309,14 @@ public class GamePhase : Phase
         _hasOptions = hasOptions;
     }
 
-    public override void onEntry() { Debug.Log("OnEntry: " + phaseName); _onEntry.Invoke(this); }
-    public override void onExit() { Debug.Log("OnExit: " + phaseName); _onExit.Invoke(this); }
-
-    public override bool hasOptions() { return _hasOptions.Invoke(this); }
-
-    public override Phase nextPhase() { return _nextPhase.Invoke(); }
+    public void executeEntry() {
+        GS.phaseActionHandler.Invoke(PhaseActionKey.ENTER, new PhasePayload(this), () => _onEntry.Invoke(this));
+    }
+    public void executeExit() {
+        GS.phaseActionHandler.Invoke(PhaseActionKey.EXIT, new PhasePayload(this), () => _onExit.Invoke(this));
+    }
+    public bool hasOptions() { return _hasOptions.Invoke(this); }
+    public GamePhase nextPhase() { return _nextPhase.Invoke(); }
 }
 
 public class PhaseUtil
@@ -319,8 +360,10 @@ public class Turn : ITurn<TurnContext>
 
     public override void startTurn()
     {
-        this.currentPhase = Phases.drawPhase;
         GS.gameStateData.currentTurn = this;
+        GS.phaseActionHandler.Invoke(PhaseActionKey.ENTER, new PhasePayload(Phases.drawPhase), () => {
+            this.currentPhase = Phases.drawPhase;
+        });
     }
 }
 
@@ -375,12 +418,7 @@ public class ACardGame : MonoBehaviour
         var advancer = myCardGame.advance();
         while (advancer.MoveNext())
         {
-            var controller = GS.gameStateData.activeController;
-            while (!controller.passesTurn())
-            {
-                yield return new WaitForEndOfFrame();
-            }
-            if (advancer.Current) break;
+            yield return new WaitForEndOfFrame();
         }
 
         yield break;
@@ -420,7 +458,5 @@ public class ACardGame : MonoBehaviour
 
     // Update is called once per frame
     void Update()
-    {
-        
-    }
+    {}
 }

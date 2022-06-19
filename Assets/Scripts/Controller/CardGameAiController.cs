@@ -2,9 +2,9 @@ using System.Linq;
 using UnityEngine;
 
 public class CardGameAiController : AbstractCardGameController {
-    private bool willPassTurn = true;
+    private bool willPassTurn = false;
 
-    private float delayBetweenActions = 1f;
+    private float delayBetweenActions = 0.2f;
     private float activeDelayLeft;
     
 
@@ -12,6 +12,11 @@ public class CardGameAiController : AbstractCardGameController {
         activeDelayLeft = delayBetweenActions;
         GS.entityActionHandler.after.onAll((_) => activeDelayLeft = 0.5f);
         GS.cardCollectionActionHandler.after.onAll((_) => activeDelayLeft = 0.5f);
+        GS.phaseActionHandler.after.on(PhaseActionKey.ENTER, (x) => {
+            if (x.phase == Phases.drawPhase && GS.gameStateData.activeController == this) {
+                willPassTurn = false;
+            }
+        });
     }
 
     public void Update() {
@@ -22,7 +27,10 @@ public class CardGameAiController : AbstractCardGameController {
 
         if (this != GS.gameStateData.activeController) return;
 
-        if (willPassTurn) return;
+        if (willPassTurn) {
+            tryPassPhase();
+            return;
+        }
 
         var side = player.side;
         var hand = side.hand;
@@ -30,16 +38,8 @@ public class CardGameAiController : AbstractCardGameController {
         var first = hand.getExisting().FirstOrDefault(e => e.value.canUseFromHand(this.player));
         if (first != null) {
             tryUseCardFromHand(first.value);
+            willPassTurn = true;
         }
-        willPassTurn = true;
-    }
-
-    public override bool passesTurn() {
-        if (willPassTurn) {
-            willPassTurn = false;
-            return true;
-        }
-        
-        return false;
+        tryPassPhase();
     }
 }

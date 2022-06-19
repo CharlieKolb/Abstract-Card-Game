@@ -96,9 +96,7 @@ public abstract class BoardCollection<E> : Collection<E>
         foreach (var entityCtx in getExisting()) {
             var entity = entityCtx.value;
             
-            Debug.Log("ABC");
             if (condition.Invoke(entityCtx)) {
-                Debug.Log("DEF");
                 InvokeCountChanged(Differ<E>.FromRemoved(entity), () => {
                     content[entityCtx.index] = null;
                     cleared.Add(entity);
