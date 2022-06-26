@@ -5,6 +5,7 @@ public abstract class AbstractCardGameController : MonoBehaviour {
     protected HandArea handArea;
     public Player player;
 
+    public bool opposing = false;
 
     protected abstract void doInstantiate();
     public void Instantiate(Player player) {
@@ -14,8 +15,8 @@ public abstract class AbstractCardGameController : MonoBehaviour {
         handArea = GetComponentInChildren<HandArea>();
         creatureArea = GetComponentInChildren<CreatureArea>();
 
-        handArea.SetCollection(player.side.hand);
-        creatureArea.SetCollection(player.side.creatures);
+        handArea.Init(this, player.side.hand);
+        creatureArea.Init(this, player.side.creatures);
 
 
         doInstantiate();

@@ -11,6 +11,8 @@ public abstract class Area<Collection, Content, ContentObject> : MonoBehaviour
     where Collection : Collection<Content>
     where ContentObject : MonoBehaviour
 {
+    public AbstractCardGameController controller;
+
     public Collection collection { get; private set; }
 
     public UnityEvent<ContentObject> onUse = new UnityEvent<ContentObject>();
@@ -49,7 +51,8 @@ public abstract class Area<Collection, Content, ContentObject> : MonoBehaviour
         refresh(context);
     }
 
-    public void SetCollection(Collection collection) {
+    public void Init(AbstractCardGameController controller, Collection collection) {
+        this.controller = controller;
         this.collection = collection;
         initCollection();
         doRefresh(Differ<Content>.FromAdded(collection.getExisting().Select(x => x.value).ToArray()));

@@ -47,7 +47,7 @@ public class CreatureArea : Area<CreatureCollection, CreatureEntity, CreatureObj
             obj.transform.rotation = Quaternion.Euler(obj.transform.eulerAngles.x, 0, obj.transform.eulerAngles.z);
 
             obj.transform.parent = transform;
-            obj.transform.localPosition = positions[x.index];
+            obj.transform.localPosition = (this.controller.opposing ? -1 : 1) * positions[x.index];
         }
     }
 }
