@@ -41,8 +41,13 @@ public class CreatureArea : Area<CreatureCollection, CreatureEntity, CreatureObj
 
     protected override void refresh(Diff<CreatureEntity> context) {
         foreach (var x in collection.getExisting()) {
-            objectMapper[x.value].transform.parent = transform;
-            objectMapper[x.value].transform.localPosition = positions[x.index];
+            // Override rotation to "face" the camera
+            // there's probably a better way
+            var obj = objectMapper[x.value];
+            obj.transform.rotation = Quaternion.Euler(obj.transform.eulerAngles.x, 0, obj.transform.eulerAngles.z);
+
+            obj.transform.parent = transform;
+            obj.transform.localPosition = positions[x.index];
         }
     }
 }

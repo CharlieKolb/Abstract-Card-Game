@@ -445,11 +445,11 @@ public class ACardGame : MonoBehaviour
         });
 
 
-        var playerController = GetComponentInChildren<CardGamePlayerController>();
-        var aiController = GetComponentInChildren<CardGameAiController>();
+        var p1Controller = this.transform.Find("Player1").GetComponent<AbstractCardGameController>();
+        var p2Controller = this.transform.Find("Player2").GetComponent<AbstractCardGameController>();
 
 
-        myCardGame = new MyCardGame(playerController, deckBp1, aiController, deckBp2);
+        myCardGame = new MyCardGame(p1Controller, deckBp1, p2Controller, deckBp2);
 
         var c = StartCoroutine(RunGame());
 

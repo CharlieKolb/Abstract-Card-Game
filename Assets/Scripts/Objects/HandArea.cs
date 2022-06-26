@@ -12,7 +12,7 @@ public class HandArea : Area<Hand, Card, CardObject> {
 
     public override CardObject resolvePrefab(Card card) {
         if (card is CreatureCard) {
-            var obj = Instantiate(creatureCardPrefab).GetComponent<CreatureCardObject>();
+            var obj = Instantiate(creatureCardPrefab, this.transform, false).GetComponent<CreatureCardObject>();
             obj.Instantiate(card, () => onUse.Invoke(obj));
             return obj;
         }
@@ -52,10 +52,9 @@ public class HandArea : Area<Hand, Card, CardObject> {
             var card = collection[i];
             var gameObj = objectMapper[card].gameObject;
             gameObj.SetActive(true);
-            gameObj.transform.SetParent(this.transform); // As opposed to setParent this doesn't mess with the rotation
 
             var width = gameObj.transform.GetComponent<BoxCollider>().bounds.size.z;
-            targetPositions.Add(new Vector3(width * cl[i], 0, 0));
+            targetPositions.Add(new Vector3(width * cl[i], 0, 0) + transform.position);
 
         }
         moveCardsTowardsTarget(1f);
