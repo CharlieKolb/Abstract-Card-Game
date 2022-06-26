@@ -5,11 +5,11 @@ public class CardGamePlayerController : AbstractCardGameController {
         
     protected override void doInstantiate() {
         handArea.onUse.AddListener((cardObject) => {
-            tryUseCardFromHand(cardObject.card);
+            // tryUseCardFromHand(cardObject.card);
         });
 
         creatureArea.onUse.AddListener((creatureObject) => {
-            tryUseCreature(creatureObject.creatureEntity);
+            // tryUseCreature(creatureObject.creatureEntity);
         });
     }
 

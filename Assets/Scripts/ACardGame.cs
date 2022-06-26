@@ -172,7 +172,6 @@ public class Player : IPlayer
     {
         if (side.hasOptions()) return true;
 
-        // todo: skip turn button event here?
         return false;
     }
     
@@ -262,34 +261,6 @@ public static class GS
     }
 }
 
-public abstract class Interaction {
-    public abstract void execute();
-}
-
-public class PassPhaseInteraction : Interaction {
-    public override void execute()
-    {
-        GS.gameStateData.currentTurn.advance();
-    }
-}
-
-public class PlayCardInteraction : Interaction {
-    private Card target;
-    private HandArea handArea;
-    private Player owner;
-
-    public PlayCardInteraction(Card target, HandArea handArea, Player owner) {
-        this.target = target;
-        this.handArea = handArea;
-        this.owner = owner;
-    }
-
-    public override void execute()
-    {
-        handArea.collection.remove(target);
-        target.use(owner);
-    }
-}
 
 // Note that even before the beginning of a phase currentPhase of a Turn will already be changed
 // Similarly we are still in the old turn after end of turn

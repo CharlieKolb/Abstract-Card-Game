@@ -1,6 +1,6 @@
 using UnityEngine;
 
-// A logical card, usually a ccollection of effects based off a blueprint
+// A logical card, usually a collection of effects based of a blueprint
 public abstract class Card : Entity {
     protected CardBlueprint cardBP;
 

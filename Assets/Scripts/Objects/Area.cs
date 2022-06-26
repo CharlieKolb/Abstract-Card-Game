@@ -19,6 +19,10 @@ public abstract class Area<Collection, Content, ContentObject> : MonoBehaviour
 
     protected Dictionary<Content, ContentObject> objectMapper;
 
+    public ContentObject getObject(Content key) {
+        return objectMapper[key];
+    }  
+
     protected List<Vector3> targetPositions; // Relative target positions for each card
 
     // Start is called before the first frame update

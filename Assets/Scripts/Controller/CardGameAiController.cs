@@ -37,7 +37,7 @@ public class CardGameAiController : AbstractCardGameController {
         var creatureArea = side.creatures;
         var first = hand.getExisting().FirstOrDefault(e => e.value.canUseFromHand(this.player));
         if (first != null) {
-            tryUseCardFromHand(first.value);
+            // tryUseCardFromHand(first.value);
             willPassTurn = true;
         }
         tryPassPhase();
