@@ -8,13 +8,20 @@ public class InteractionManager : MonoBehaviour
 {
     public GameObject interactionObject;
 
+    // Do not consume more than one interaction per call
     public List<Interaction> getInteractions() {
-        return new List<Interaction>{ new PassPhaseInteraction() }
+        var res = new List<Interaction>();
+
+        if (controller == GS.gameStateData.activeController) {
+            res.Add(new PassPhaseInteraction());
+        }
+
+        return res
                 .Concat(getInteractions(side.hand))
                 .Concat(getInteractions(side.creatures)).ToList();
     }
 
-    public List<Interaction> getInteractions(Hand hand) {
+    private List<Interaction> getInteractions(Hand hand) {
         if (GS.gameStateData.activeController.player != side.player || ! new List<GamePhase>{ Phases.mainPhase1, Phases.mainPhase2 }.Contains(GS.gameStateData.currentTurn.currentPhase)) {
             return new List<Interaction>();
         }
@@ -25,7 +32,7 @@ public class InteractionManager : MonoBehaviour
             .ToList<Interaction>();
     }
 
-    public List<Interaction> getInteractions(CreatureCollection creatures) {
+    private List<Interaction> getInteractions(CreatureCollection creatures) {
         if (GS.gameStateData.activeController.player != side.player || GS.gameStateData.currentTurn.currentPhase != Phases.battlePhase) {
             return new List<Interaction>();
         }
@@ -64,7 +71,7 @@ public class InteractionManager : MonoBehaviour
 
     void flushInteractions() {
         foreach (var obj in currentInteractions.Values) {
-            Destroy(obj.gameObject);
+            if (obj != null && obj.gameObject != null) Destroy(obj.gameObject);
         }
         currentInteractions.Clear();
         updateInteractions();
@@ -92,7 +99,7 @@ public class InteractionManager : MonoBehaviour
         foreach (var key in toBeRemoved) {
             var obj = currentInteractions[key];
             currentInteractions.Remove(key);
-            Destroy(obj.gameObject);
+            if (obj != null && obj.gameObject != null) Destroy(obj.gameObject);
         }
     }
 

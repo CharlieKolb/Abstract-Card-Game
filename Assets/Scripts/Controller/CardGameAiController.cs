@@ -7,7 +7,6 @@ public class CardGameAiController : AbstractCardGameController {
     private float delayBetweenActions = 0.2f;
     private float activeDelayLeft;
     
-
     protected override void doInstantiate() {
         activeDelayLeft = delayBetweenActions;
         GS.entityActionHandler.after.onAll((_) => activeDelayLeft = 0.5f);
@@ -27,19 +26,18 @@ public class CardGameAiController : AbstractCardGameController {
 
         if (this != GS.gameStateData.activeController) return;
 
-        if (willPassTurn) {
-            tryPassPhase();
+        var interactionOptions = im.getInteractions(); 
+
+        if (interactionOptions.Count == 0) {
             return;
         }
 
-        var side = player.side;
-        var hand = side.hand;
-        var creatureArea = side.creatures;
-        var first = hand.getExisting().FirstOrDefault(e => e.value.canUseFromHand(this.player));
-        if (first != null) {
-            // tryUseCardFromHand(first.value);
-            willPassTurn = true;
+        if (willPassTurn) {
+            var x = interactionOptions.Find(x => x is PassPhaseInteraction);
+            if (x != null) x.execute();
+            return;
         }
-        tryPassPhase();
+
+        interactionOptions[Random.Range(0, interactionOptions.Count)].execute();
     }
 }
