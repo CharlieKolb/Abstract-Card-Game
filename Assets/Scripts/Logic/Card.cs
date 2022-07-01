@@ -1,5 +1,5 @@
 using UnityEngine;
-
+using System.Collections.Generic;
 // A logical card, usually a collection of effects based of a blueprint
 public abstract class Card : Entity {
     protected CardBlueprint cardBP;
@@ -19,6 +19,10 @@ public abstract class Card : Entity {
     }
 
     public bool canUseFromHand(Player owner) {
+        if (GS.gameStateData.activeController.player != owner.side.player ||
+        !new List<GamePhase>{ Phases.mainPhase1, Phases.mainPhase2 }.Contains(GS.gameStateData.currentTurn.currentPhase)) {
+            return false;
+        }
         return cardBP.costs.canBePaid(owner.side.energy) && cardBP.effects.TrueForAll(x => x.canApply(owner));
     }
 }

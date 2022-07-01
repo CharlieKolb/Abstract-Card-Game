@@ -22,10 +22,6 @@ public class InteractionManager : MonoBehaviour
     }
 
     private List<Interaction> getInteractions(Hand hand) {
-        if (GS.gameStateData.activeController.player != side.player || ! new List<GamePhase>{ Phases.mainPhase1, Phases.mainPhase2 }.Contains(GS.gameStateData.currentTurn.currentPhase)) {
-            return new List<Interaction>();
-        }
-
         return hand.getExisting()
             .Where(c => c.value.canUseFromHand(side.player))
             .Select(x => new PlayCardInteraction(x.value, hand, side.player))
