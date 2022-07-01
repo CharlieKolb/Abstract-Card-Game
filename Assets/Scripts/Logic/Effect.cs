@@ -91,12 +91,10 @@ public class DamageCreatureEffect : Effect {
 
 public class SpawnCreatureEffect : Effect
 {
-    Stats stats;
-    string name;
+    CreatureCardData data;
 
-    public SpawnCreatureEffect(string name, Stats stats) {
-        this.stats = stats;
-        this.name = name;
+    public SpawnCreatureEffect(CreatureCardData data) {
+        this.data = data;
     }
 
     public override bool canApply(Player owner) {
@@ -108,7 +106,7 @@ public class SpawnCreatureEffect : Effect
     {
         var board = owner.side.creatures;
         var i = 0;
-        while (i < board.Count && !board.tryPlay(new CreatureEntity(owner, name, stats), i, getContext())) {
+        while (i < board.Count && !board.tryPlay(new CreatureEntity(owner, data), i, getContext())) {
             i++;
             if (i == board.Count) throw new System.Exception("Tried to play card on full board!");
         }

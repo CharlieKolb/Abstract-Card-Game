@@ -90,18 +90,18 @@ public class CardBPMaker
         this.prefab = prefab;
     }
 
-    public CreatureCardBlueprint makeCreatureBP(string name, Stats stats, Energy costs, List<Effect> effects = null)
+    public CreatureCardBlueprint makeCreatureBP(string name)
     {
-        return new CreatureCardBlueprint(name, stats, effects != null ? effects : new List<Effect>(), costs, func, prefab);
+        var card = Cards.creatures[name];
+        return new CreatureCardBlueprint(card, func, prefab);
     }
 }
 
 
 public abstract class CardBlueprint
 {
-    public string cardName;
+    public CardData data;
     public List<Effect> effects;
-    public Energy costs;
 
     public delegate T InstantiateOriginal<T>(GameObject original) where T : UnityEngine.Object;
 
@@ -110,12 +110,11 @@ public abstract class CardBlueprint
 
 
 
-    public CardBlueprint(string name, List<Effect> effects, Energy costs, F.InstantiateOriginal instantiateFunc, GameObject prefab)
+    public CardBlueprint(CardData data, List<Effect> effects, F.InstantiateOriginal instantiateFunc, GameObject prefab)
     {
-        cardName = name;
-        instantiate = instantiateFunc;
+        this.data = data;
         this.effects = effects;
-        this.costs = costs;
+        instantiate = instantiateFunc;
         this.prefab = prefab;
     }
 
@@ -129,14 +128,11 @@ public abstract class CardBlueprint
 public class CreatureCardBlueprint : CardBlueprint {
     public Stats stats;
     public CreatureCardBlueprint(
-        string name,
-        Stats stats,
-        List<Effect> effects,
-        Energy costs,
+        CreatureCardData data,
         F.InstantiateOriginal instantiateFunc,
         GameObject prefab
-    ) : base(name, effects.Concat(new List<Effect>{ new SpawnCreatureEffect(name, stats) }).ToList(), costs, instantiateFunc, prefab) {
-        this.stats = stats;
+    ) : base(data, data.effects.Concat(new List<Effect>{ new SpawnCreatureEffect(data) }).ToList(), instantiateFunc, prefab) {
+        this.stats = data.stats;
     }
 
     public override Card MakeCard()
@@ -402,17 +398,15 @@ public class ACardGame : MonoBehaviour
         var maker = new CardBPMaker(Instantiate, cardPrefab);
 
         var deckBp1 = new DeckBlueprint(new Dictionary<CardBlueprint, int>{
-            { maker.makeCreatureBP("cardA", new Stats(6,6), Energy.FromRed(3)), 5 },
-            { maker.makeCreatureBP("cardB", new Stats(6,6), Energy.FromGreen(3)), 5 },
-            { maker.makeCreatureBP("cardC", new Stats(3,4), Energy.FromBlue(3)), 5 },
-            { maker.makeCreatureBP("cardD", new Stats(3,2), Energy.FromRed(6)), 5 },
+            { maker.makeCreatureBP("Brute"), 5 },
+            { maker.makeCreatureBP("Fisher"), 5 },
+            { maker.makeCreatureBP("Guardian"), 5 },
         });
 
         var deckBp2 = new DeckBlueprint(new Dictionary<CardBlueprint, int>{
-            { maker.makeCreatureBP("cardA", new Stats(3,3), Energy.FromRed(3)), 5 },
-            { maker.makeCreatureBP("cardB", new Stats(2,1), Energy.FromGreen(3)), 5 },
-            { maker.makeCreatureBP("cardC", new Stats(3,4), Energy.FromBlue(3)), 5 },
-            { maker.makeCreatureBP("cardD", new Stats(3,2), Energy.FromRed(6)), 5 },
+            { maker.makeCreatureBP("Brute"), 5 },
+            { maker.makeCreatureBP("Fisher"), 5 },
+            { maker.makeCreatureBP("Guardian"), 5 },
         });
 
 

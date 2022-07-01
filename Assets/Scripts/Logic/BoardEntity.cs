@@ -19,12 +19,14 @@ public class BoardEntity : Entity
 
 public class CreatureEntity : BoardEntity
 {
+    public CreatureCardData baseData;
     public Stats stats;
     public bool hasAttacked = false;
 
-    public CreatureEntity(Player owner, string name, Stats stats) : base(owner, name)
+    public CreatureEntity(Player owner, CreatureCardData data) : base(owner, data.name)
     {
-        this.stats = stats;
+        this.baseData = data;
+        this.stats = new Stats(data.stats);
         GS.phaseActionHandler.after.on(PhaseActionKey.ENTER, p => {
             if (GS.gameStateData.activeController.player == owner && p.phase == Phases.drawPhase) {
                 hasAttacked = false;

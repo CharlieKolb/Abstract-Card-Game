@@ -19,7 +19,7 @@ public abstract class CardObject : MonoBehaviour {
 
         {var x = transform.Find("CostObject").gameObject;
         var y = x.GetComponent<TMPro.TextMeshPro>();
-        y.text = card.costs.ToString();}
+        y.text = card.cost.ToString();}
 
         doInstantiate(card);
     }
