@@ -6,7 +6,7 @@ public class CardGamePlayerController : AbstractCardGameController {
     protected override void doInstantiate() {
     }
 
-    void Update() {
+    void LateUpdate() {
     }
 
 }

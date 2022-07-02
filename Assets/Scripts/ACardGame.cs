@@ -257,10 +257,8 @@ public static class GS
     }
 
     private static List<IEnumerator<bool>> interactionQueue = new List<IEnumerator<bool>>();
-    public static void EnqueueInteraction(Interaction interaction) {
-        interactionQueue.Add(interaction.execute());
-    }
-    public static void PrependInteraction(Interaction interaction) {
+    
+    public static void PushInteraction(Interaction interaction) {
         interactionQueue.Insert(0, interaction.execute());
     }
 
@@ -460,7 +458,6 @@ public class ACardGame : MonoBehaviour
     }
 
 
-    // Update is called once per frame
     void Update()
     {
         GS.Tick();

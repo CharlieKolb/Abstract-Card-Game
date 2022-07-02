@@ -18,7 +18,8 @@ public class CardGameAiController : AbstractCardGameController {
         });
     }
 
-    public void Update() {
+    // LateUpdate to let GameState tick first
+    private void LateUpdate() {
         activeDelayLeft -= Time.deltaTime;
         if (activeDelayLeft > 0) return;
 
@@ -36,9 +37,6 @@ public class CardGameAiController : AbstractCardGameController {
         var interaction = interactionOptions[Random.Range(0, interactionOptions.Count)];
         if (interaction is SacCardInteraction) saccedThisTurn = true;
 
-        if (interaction is SelectTargetInteraction) {
-            GS.PrependInteraction(interaction);
-        }
-        else GS.EnqueueInteraction(interaction);
+        GS.PushInteraction(interaction);
     }
 }

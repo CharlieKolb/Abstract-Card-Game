@@ -274,11 +274,11 @@ PrefabInstance:
     - target: {fileID: 6782964094924491895, guid: b8dbc8fe8fdccc444b1b56c48395d1d5, type: 3}
       propertyPath: controller
       value: 
-      objectReference: {fileID: 1391456875}
+      objectReference: {fileID: 0}
     - target: {fileID: 8920389576984761552, guid: b8dbc8fe8fdccc444b1b56c48395d1d5, type: 3}
       propertyPath: controller
       value: 
-      objectReference: {fileID: 1391456875}
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: b8dbc8fe8fdccc444b1b56c48395d1d5, type: 3}
 --- !u!4 &952547464 stripped
@@ -335,6 +335,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   cardPrefab: {fileID: 1052078826933964211, guid: a9a9644fbe762634e95a9e97b80909f8, type: 3}
+  targetSelecterPrefab: {fileID: 0}
 --- !u!114 &1015072535
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -545,7 +546,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 1391456873}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: bbc326484946c4843b958509374128c7, type: 3}
+  m_Script: {fileID: 11500000, guid: 1f8c0f44bbdef7d49b42aa5f9dd6df98, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   creatureArea: {fileID: 0}

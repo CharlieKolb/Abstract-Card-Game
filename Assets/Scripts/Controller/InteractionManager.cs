@@ -149,8 +149,8 @@ public class InteractionManager : MonoBehaviour
         entry.callback.AddListener((ed) => {
             if (((PointerEventData) ed).button == button) {
                 flushInteractions();
-                if (prepend) GS.PrependInteraction(interaction);
-                else GS.EnqueueInteraction(interaction);
+                if (prepend) GS.PushInteraction(interaction);
+                else GS.PushInteraction(interaction);
             }
         });
         triggerObj.GetComponent<EventTrigger>().triggers.Add(entry);
