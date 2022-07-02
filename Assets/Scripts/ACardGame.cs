@@ -53,6 +53,12 @@ public class Side
         hp = new HP();
         maxEnergy = new Energy(); 
         energy = new Energy(maxEnergy);
+
+        GS.phaseActionHandler.after.on(PhaseActionKey.ENTER, p => {
+            if (p.phase == Phases.drawPhase && GS.gameStateData.activeController.player == player) {
+                energy = new Energy(maxEnergy);
+            }
+        });
     }
 
     public bool hasOptions()
@@ -343,6 +349,10 @@ class MyCardGame : TurnGame<Turn, TurnContext, AbstractCardGameController>
         p2.Instantiate(player2);
         GS.gameStateData.activeController = p1;
         GS.gameStateData.passiveController = p2;
+        for (int i = 0; i < 5; ++i) {
+            player1.drawCard();
+            player2.drawCard();
+        }
     }
 
     public override Turn makeTurn() {
@@ -397,14 +407,12 @@ public class ACardGame : MonoBehaviour
         var maker = new CardBPMaker(Instantiate, cardPrefab);
 
         var deckBp1 = new DeckBlueprint(new Dictionary<CardBlueprint, int>{
-            { maker.makeCreatureBP("Brute"), 5 },
+            { maker.makeCreatureBP("Brute"), 15 },
             { maker.makeCreatureBP("Fisher"), 5 },
-            { maker.makeCreatureBP("Guardian"), 5 },
         });
 
         var deckBp2 = new DeckBlueprint(new Dictionary<CardBlueprint, int>{
-            { maker.makeCreatureBP("Brute"), 5 },
-            { maker.makeCreatureBP("Fisher"), 5 },
+            { maker.makeCreatureBP("Fisher"), 15 },
             { maker.makeCreatureBP("Guardian"), 5 },
         });
 

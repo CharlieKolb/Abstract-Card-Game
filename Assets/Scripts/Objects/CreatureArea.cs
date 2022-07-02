@@ -7,6 +7,7 @@ using CardGameInterface;
 public class CreatureArea : Area<CreatureCollection, CreatureEntity, CreatureObject> {
 
     public GameObject creatureObjectPrefab;
+    public GameObject creatureFieldPrefab;
 
     public override CreatureObject resolvePrefab(CreatureEntity creature) {
         var obj = Instantiate(creatureObjectPrefab).GetComponent<CreatureObject>();
@@ -24,6 +25,13 @@ public class CreatureArea : Area<CreatureCollection, CreatureEntity, CreatureObj
     
     public override void Start() {
         base.Start();
+
+        foreach (var pos in positions) {
+            var obj = Instantiate(creatureFieldPrefab);
+            obj.transform.parent = transform;
+            obj.transform.localPosition = (this.controller.opposing ? -1 : 1) * pos;
+        }
+
     }
 
     public override void Update() {

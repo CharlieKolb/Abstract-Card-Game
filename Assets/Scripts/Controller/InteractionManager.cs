@@ -8,8 +8,6 @@ using System.Linq;
 
 public class InteractionManager : MonoBehaviour
 {
-    public GameObject interactionObject;
-
     // Do not consume more than one interaction per call
     public List<Interaction> getInteractions() {
         var res = new List<Interaction>();

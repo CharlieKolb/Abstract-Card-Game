@@ -1,10 +1,14 @@
 using UnityEngine;
 
 public abstract class AbstractCardGameController : MonoBehaviour {
+    [HideInInspector]
     public CreatureArea creatureArea;
+    [HideInInspector]
     public HandArea handArea;
+    [HideInInspector]
     public Player player;
 
+    [HideInInspector]
     public InteractionManager im;
 
     public bool opposing = false;
@@ -18,8 +22,8 @@ public abstract class AbstractCardGameController : MonoBehaviour {
         creatureArea = GetComponentInChildren<CreatureArea>();
         im = GetComponentInChildren<InteractionManager>();
 
-        handArea.Init(this, player.side.hand);
-        creatureArea.Init(this, player.side.creatures);
+        handArea.Init(player.side.hand);
+        creatureArea.Init(player.side.creatures);
 
 
         doInstantiate();

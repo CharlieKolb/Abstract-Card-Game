@@ -43,4 +43,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b75f24e6e5a36c94898a95f066aa2828, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  controller: {fileID: 0}
+  onUse:
+    m_PersistentCalls:
+      m_Calls: []
   creatureObjectPrefab: {fileID: 8881095135719895532, guid: 8c9cf83e0114cae46bd901681a662978, type: 3}
+  creatureFieldPrefab: {fileID: 5921946404536255880, guid: 6b759d732999e184480e5eef2704be17, type: 3}
