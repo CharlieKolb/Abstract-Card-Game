@@ -1,6 +1,8 @@
 using System.Collections;
 using System.Collections.Generic;
+using System;
 using UnityEngine;
+using UnityEngine.EventSystems;
 
 using System.Linq;
 
@@ -22,10 +24,15 @@ public class InteractionManager : MonoBehaviour
     }
 
     private List<Interaction> getInteractions(Hand hand) {
-        return hand.getExisting()
+        var all = hand.getExisting();
+        var playable = all
             .Where(c => c.value.canUseFromHand(side.player))
             .Select(x => new PlayCardInteraction(x.value, hand, side.player))
             .ToList<Interaction>();
+
+        var saccable = all.Select(x => new SacCardInteraction(x.value, hand, side.player)).ToList<Interaction>();
+
+        return playable.Concat(saccable).ToList();
     }
 
     private List<Interaction> getInteractions(CreatureCollection creatures) {
@@ -63,11 +70,11 @@ public class InteractionManager : MonoBehaviour
         }
     }
 
-    Dictionary<Interaction, InteractionObject> currentInteractions = new Dictionary<Interaction, InteractionObject>(new Comparer());
+    Dictionary<Interaction, Action> currentInteractions = new Dictionary<Interaction, Action>(new Comparer());
 
     void flushInteractions() {
-        foreach (var obj in currentInteractions.Values) {
-            if (obj != null && obj.gameObject != null) Destroy(obj.gameObject);
+        foreach (var act in currentInteractions.Values) {
+            act();
         }
         currentInteractions.Clear();
         updateInteractions();
@@ -93,34 +100,48 @@ public class InteractionManager : MonoBehaviour
         }
 
         foreach (var key in toBeRemoved) {
-            var obj = currentInteractions[key];
+            var act = currentInteractions[key];
             currentInteractions.Remove(key);
-            if (obj != null && obj.gameObject != null) Destroy(obj.gameObject);
+            act();
         }
     }
 
-    InteractionObject SpawnInteraction(Interaction interaction) {
-        var iobj = Instantiate(interactionObject).GetComponent<InteractionObject>();
+    Action SpawnInteraction(Interaction interaction) {
+        GameObject triggerObj = null;
+        PointerEventData.InputButton button = PointerEventData.InputButton.Left;
+
         if (interaction is PlayCardInteraction) {
             var pci = (PlayCardInteraction) interaction;
+            triggerObj = controller.handArea.getObject(pci.target).gameObject;
+        }
+        else if (interaction is SacCardInteraction) {
+            var pci = (SacCardInteraction) interaction;
             var obj = controller.handArea.getObject(pci.target);
-            iobj.transform.SetParent(obj.transform, false);
+            button = PointerEventData.InputButton.Right;
+            triggerObj = controller.handArea.getObject(pci.target).gameObject;
         }
         else if (interaction is PassPhaseInteraction) {
             var ppi = (PassPhaseInteraction) interaction;
-            iobj.transform.SetParent(passTurnButton.transform, false);
+            triggerObj = passTurnButton;
         }
         else if (interaction is DeclareAttackInteraction) {
             var dai = (DeclareAttackInteraction) interaction;
-            iobj.transform.SetParent(controller.creatureArea.getObject(dai.creature).transform, false);
+            triggerObj = controller.creatureArea.getObject(dai.creature).gameObject;
         }
-        iobj.transform.position = iobj.transform.parent.position;
-        iobj.OnClick.AddListener(() => {
-            flushInteractions();
-            GS.EnqueueInteraction(interaction);
-        });
+        var entry = new EventTrigger.Entry {
+            eventID = EventTriggerType.PointerDown,
+        };
 
-        return iobj;
+        entry.callback.AddListener((ed) => {
+            if (((PointerEventData) ed).button == button) {
+                flushInteractions();
+                GS.EnqueueInteraction(interaction);
+            }
+        });
+        triggerObj.GetComponent<EventTrigger>().triggers.Add(entry);
+        return () => {
+            entry.callback.RemoveAllListeners();
+        };
     }
 
     // Update is called once per frame

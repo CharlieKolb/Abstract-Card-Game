@@ -116,3 +116,40 @@ public class PlayCardInteraction : Interaction {
     }
 
 }
+
+public class SacCardInteraction : Interaction {
+    public Card target;
+    public Hand hand;
+    public Player owner;
+
+    public SacCardInteraction(Card target, Hand hand, Player owner) {
+        this.target = target;
+        this.hand = hand;
+        this.owner = owner;
+    }
+
+    protected override void doExecute()
+    {
+        hand.remove(target);
+        owner.side.maxEnergy = owner.side.maxEnergy.With(target.sac);
+        owner.side.energy = owner.side.energy.With(target.sac);
+    }
+
+    // override object.Equals
+    public override bool Equals(object obj)
+    {
+        if (obj == null || GetType() != obj.GetType())
+        {
+            return false;
+        }
+        var oth = (SacCardInteraction) obj;
+        return target == oth.target; // we ignore player as creatures are unique
+    }
+    
+    // override object.GetHashCode
+    public override int GetHashCode()
+    {
+        return target.GetHashCode();
+    }
+
+}

@@ -51,8 +51,7 @@ public class Side
         creatures = new CreatureCollection();
         graveyard = new Graveyard();
         hp = new HP();
-        maxEnergy = Energy.FromRed(5).WithGreen(5).WithBlue(5); 
-        
+        maxEnergy = new Energy(); 
         energy = new Energy(maxEnergy);
     }
 

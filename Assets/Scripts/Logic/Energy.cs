@@ -29,6 +29,13 @@ public class Energy {
             this.blue - sub.blue
         );
     }
+    public Energy With(Energy sub) {
+        return new Energy(
+            this.red + sub.red,
+            this.green + sub.green,
+            this.blue + sub.blue
+        );
+    }
 
     public static Energy FromRed(int val) {
         var res = new Energy();
