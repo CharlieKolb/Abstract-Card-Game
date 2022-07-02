@@ -12,6 +12,13 @@ public class InteractionManager : MonoBehaviour
     public List<Interaction> getInteractions() {
         var res = new List<Interaction>();
 
+        if (GS.target != null) {
+            return GameObject.FindGameObjectsWithTag("Targetable")
+                .Where(x => GS.target.isValidTargetCondition.Invoke((x, new EffectTargetContext{ owner = GS.gameStateData.activeController.player })))
+                .Select(x => new SelectTargetInteraction(GS.target, x, new EffectTargetContext{ owner = GS.gameStateData.activeController.player }))
+                .ToList<Interaction>();
+        }
+
         if (controller == GS.gameStateData.activeController) {
             res.Add(new PassPhaseInteraction());
         }
@@ -67,7 +74,7 @@ public class InteractionManager : MonoBehaviour
             return i.GetHashCode();
         }
     }
-
+    
     Dictionary<Interaction, Action> currentInteractions = new Dictionary<Interaction, Action>(new Comparer());
 
     void flushInteractions() {
@@ -107,7 +114,7 @@ public class InteractionManager : MonoBehaviour
     Action SpawnInteraction(Interaction interaction) {
         GameObject triggerObj = null;
         PointerEventData.InputButton button = PointerEventData.InputButton.Left;
-
+        bool prepend = false;
         if (interaction is PlayCardInteraction) {
             var pci = (PlayCardInteraction) interaction;
             triggerObj = controller.handArea.getObject(pci.target).gameObject;
@@ -126,6 +133,15 @@ public class InteractionManager : MonoBehaviour
             var dai = (DeclareAttackInteraction) interaction;
             triggerObj = controller.creatureArea.getObject(dai.creature).gameObject;
         }
+        else if (interaction is SelectTargetInteraction) {
+            var sti = (SelectTargetInteraction) interaction;
+            triggerObj = sti.target;
+            prepend = true;
+        }
+
+
+
+
         var entry = new EventTrigger.Entry {
             eventID = EventTriggerType.PointerDown,
         };
@@ -133,7 +149,8 @@ public class InteractionManager : MonoBehaviour
         entry.callback.AddListener((ed) => {
             if (((PointerEventData) ed).button == button) {
                 flushInteractions();
-                GS.EnqueueInteraction(interaction);
+                if (prepend) GS.PrependInteraction(interaction);
+                else GS.EnqueueInteraction(interaction);
             }
         });
         triggerObj.GetComponent<EventTrigger>().triggers.Add(entry);

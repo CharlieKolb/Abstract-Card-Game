@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Threading;
 using UnityEngine;
 
 using System.Linq;
@@ -255,10 +256,40 @@ public static class GS
         after();
     }
 
-    private static ConcurrentQueue<Interaction> interactionQueue = new ConcurrentQueue<Interaction>();
+    private static List<IEnumerator<bool>> interactionQueue = new List<IEnumerator<bool>>();
     public static void EnqueueInteraction(Interaction interaction) {
-        interaction.execute();
-        // interactionQueue.Enqueue(interaction);
+        interactionQueue.Add(interaction.execute());
+    }
+    public static void PrependInteraction(Interaction interaction) {
+        interactionQueue.Insert(0, interaction.execute());
+    }
+
+    static ConcurrentQueue<IEnumerator<EffectTarget>> targetQueue = new ConcurrentQueue<IEnumerator<EffectTarget>>();
+    public static EffectTarget target;
+    public static bool isResolvingEffects => targetQueue.Count > 0;
+
+    public static void ResolveEffectTargets(Effect effect, Player owner) {
+        targetQueue.Enqueue(effect.resolveTargets());
+    }
+
+    public static void Tick() {
+        while (targetQueue.Count > 0) {
+            IEnumerator<EffectTarget> front;
+            targetQueue.TryPeek(out front);
+            if (!front.MoveNext()) targetQueue.TryDequeue(out front);
+            else {
+                GS.target = front.Current;
+                break;
+            }
+        }
+
+        while (interactionQueue.Count > 0) {
+            IEnumerator<bool> front = interactionQueue[0];
+            if (!front.MoveNext()) interactionQueue.RemoveAt(0);
+            else {
+                break;
+            }
+        }
     }
 }
 
@@ -385,6 +416,7 @@ public class DeckBlueprint
 public class ACardGame : MonoBehaviour
 {
     public GameObject cardPrefab;
+    public GameObject targetSelecterPrefab;
 
     MyCardGame myCardGame;
 
@@ -430,5 +462,7 @@ public class ACardGame : MonoBehaviour
 
     // Update is called once per frame
     void Update()
-    {}
+    {
+        GS.Tick();
+    }
 }

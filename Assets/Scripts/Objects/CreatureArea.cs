@@ -26,10 +26,11 @@ public class CreatureArea : Area<CreatureCollection, CreatureEntity, CreatureObj
     public override void Start() {
         base.Start();
 
-        foreach (var pos in positions) {
+        for (int i = 0; i < positions.Length; ++i) {
             var obj = Instantiate(creatureFieldPrefab);
+            obj.GetComponent<CreatureField>().index = i;
             obj.transform.parent = transform;
-            obj.transform.localPosition = (this.controller.opposing ? -1 : 1) * pos;
+            obj.transform.localPosition = (this.controller.opposing ? -1 : 1) * positions[i];
         }
 
     }

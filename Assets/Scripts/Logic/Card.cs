@@ -1,5 +1,7 @@
 using UnityEngine;
 using System.Collections.Generic;
+using System.Linq;
+
 // A logical card, usually a collection of effects based of a blueprint
 public abstract class Card : Entity {
     protected CardBlueprint cardBP;
@@ -8,15 +10,18 @@ public abstract class Card : Entity {
     public Energy sac => cardBP.data.sac;
     public string name => cardBP.data.name;
 
+    public List<Effect> effects;
+
     public Card(CardBlueprint cardBP) {
         this.cardBP = cardBP;
+        this.effects = cardBP.effects.Select(x => x.Clone()).ToList();
     }
 
     public void use(Player owner) {
         GS.energyActionHandler.Invoke(EnergyActionKey.PAY, new EnergyPayload(cost, this), () => {
             owner.side.energy = owner.side.energy.Without(cost);
         });
-        cardBP.effects.ForEach(x => x.apply(owner));
+        effects.ForEach(x => x.apply(owner));
     }
 
     public bool canUseFromHand(Player owner) {
