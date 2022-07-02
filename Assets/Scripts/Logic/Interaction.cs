@@ -63,11 +63,11 @@ public class DeclareAttackInteraction : Interaction {
         var opponent = otherCreatureCollection[idx];
         if (opponent == null) {
             // direct attack
-            GS.ResolveEffectTargets(new DamagePlayerEffect(creature.stats.attack, GS.gameStateData.passiveController.player), owner);
+            new DamagePlayerEffect(creature.stats.attack, GS.gameStateData.passiveController.player).apply(owner);
         }
         else {
-            GS.ResolveEffectTargets(new DamageCreatureEffect(creature.stats.attack, opponent), owner);
-            GS.ResolveEffectTargets(new DamageCreatureEffect(opponent.stats.attack, creature), owner);
+            new DamageCreatureEffect(creature.stats.attack, opponent).apply(owner);
+            new DamageCreatureEffect(opponent.stats.attack, creature).apply(owner);
         }
         creature.hasAttacked = true;
     }
@@ -102,21 +102,19 @@ public class PlayCardInteraction : Interaction {
     }
 
     protected override IEnumerator<bool> startExecute() {
-        Debug.Log("A");
         target.effects.ForEach(x => GS.ResolveEffectTargets(x, owner));
-        Debug.Log("B");
 
-        while (GS.isResolvingEffects) yield return false;
-        Debug.Log("C");
+        while (GS.isResolvingEffects) yield return true;
+
+        GS.energyActionHandler.Invoke(EnergyActionKey.PAY, new EnergyPayload(target.cost, target), () => {
+            owner.side.energy = owner.side.energy.Without(target.cost);
+        });
     }
-
 
     protected override void doExecute()
     {
-        Debug.Log("PlayCard1");
         hand.remove(target);
         target.use(owner);
-        Debug.Log("PlayCard2");
     }
 
     // override object.Equals

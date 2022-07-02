@@ -124,9 +124,6 @@ public class SpawnCreatureEffect : Effect
         this.data = data;
         requests.Add(EffectTargets.targetEmptyFriendlyField(idx => {
             this.index = idx;
-            Debug.Log(GetHashCode());
-            Debug.Log("IndexA: " + index);
-            Debug.Log("IndexB: " + idx);
         }));
     }
 

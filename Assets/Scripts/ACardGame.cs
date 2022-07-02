@@ -223,7 +223,7 @@ public static class GS
 
     public static GameActionHandler<PhasePayload> phaseActionHandler = new GameActionHandler<PhasePayload>();
 
-    public static bool debug = true;
+    public static bool debug = false;
 
     static GS() {
         if (debug) {

@@ -18,9 +18,6 @@ public abstract class Card : Entity {
     }
 
     public void use(Player owner) {
-        GS.energyActionHandler.Invoke(EnergyActionKey.PAY, new EnergyPayload(cost, this), () => {
-            owner.side.energy = owner.side.energy.Without(cost);
-        });
         effects.ForEach(x => x.apply(owner));
     }
 
