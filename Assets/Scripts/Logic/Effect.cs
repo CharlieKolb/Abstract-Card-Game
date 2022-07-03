@@ -27,11 +27,11 @@ public abstract class Effect : Entity
     public IEnumerator<EffectTarget> resolveTargets() {
         for (int idx = 0; idx < requests.Count; ++idx) {
             var elem = requests[idx];
+            yield return elem;
             while (!elem.called) {
                 yield return elem;
             }
         }
-        requests.Clear();
     }
 
     public void apply(Player owner) {
@@ -136,8 +136,6 @@ public class SpawnCreatureEffect : Effect
 
     protected override void doApply(Player owner)
     {
-        Debug.Log("IndexC: " + index);
-        Debug.Log(GetHashCode());
         var board = owner.side.creatures;
         if(!board.tryPlay(new CreatureEntity(owner, data), index, getContext())) {
             throw new System.Exception("Unable to play card!");

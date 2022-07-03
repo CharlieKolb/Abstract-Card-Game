@@ -1,5 +1,6 @@
 using UnityEngine;
 using System.Collections.Generic;
+using System.Linq;
 
 public abstract class Interaction {
     public delegate void OnExecute();
@@ -10,13 +11,16 @@ public abstract class Interaction {
         var start = startExecute();
         while (start.MoveNext()) {
             yield return start.Current;
+            if (start.Current == false) {
+                yield break;
+            }
         }
 
         onExecute?.Invoke();
         doExecute();        
         executed = true;
     }
-    protected virtual IEnumerator<bool> startExecute() { yield break; }
+    protected virtual IEnumerator<bool> startExecute() { yield return true; }
     protected abstract void doExecute();
 
 }
@@ -102,13 +106,21 @@ public class PlayCardInteraction : Interaction {
     }
 
     protected override IEnumerator<bool> startExecute() {
-        target.effects.ForEach(x => GS.ResolveEffectTargets(x, owner));
+        var results = target.effects.Select(x => GS.ResolveEffectTargets(x, owner)).ToList();
 
         while (GS.isResolvingEffects) yield return true;
+
+        if (results.Any(x => x != null && x.cancelled)) {
+            results.ForEach(x => { if(x != null) x.reset(); });
+            yield return false;
+        }
+        Debug.Log("O");
+
 
         GS.energyActionHandler.Invoke(EnergyActionKey.PAY, new EnergyPayload(target.cost, target), () => {
             owner.side.energy = owner.side.energy.Without(target.cost);
         });
+        yield return true;
     }
 
     protected override void doExecute()
@@ -207,6 +219,37 @@ public class SelectTargetInteraction : Interaction {
     public override int GetHashCode()
     {
         return target.GetHashCode();
+    }
+}
+
+public class CancelSelectionInteraction : Interaction {
+    EffectTarget effect;
+
+    public CancelSelectionInteraction(EffectTarget effect) {
+        this.effect = effect;
+    }
+
+    
+    protected override void doExecute()
+    {
+        GS.CancelSelection();
+    }
+
+    // override object.Equals
+    public override bool Equals(object obj)
+    {
+        if (obj == null || GetType() != obj.GetType())
+        {
+            return false;
+        }
+        var oth = (CancelSelectionInteraction) obj;
+        return effect == oth.effect; // we ignore player as creatures are unique
+    }
+    
+    // override object.GetHashCode
+    public override int GetHashCode()
+    {
+        return effect.GetHashCode();
     }
 
 }

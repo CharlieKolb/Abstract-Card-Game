@@ -13,10 +13,12 @@ public class InteractionManager : MonoBehaviour
         var res = new List<Interaction>();
 
         if (GS.target != null) {
-            return GameObject.FindGameObjectsWithTag("Targetable")
+            var targetable = GameObject.FindGameObjectsWithTag("Targetable")
                 .Where(x => GS.target.isValidTargetCondition.Invoke((x, new EffectTargetContext{ owner = GS.gameStateData.activeController.player })))
                 .Select(x => new SelectTargetInteraction(GS.target, x, new EffectTargetContext{ owner = GS.gameStateData.activeController.player }))
                 .ToList<Interaction>();
+
+            return targetable.Concat(new List<Interaction>{ new CancelSelectionInteraction(GS.target) }).ToList();
         }
 
         if (controller == GS.gameStateData.activeController) {
@@ -114,7 +116,6 @@ public class InteractionManager : MonoBehaviour
     Action SpawnInteraction(Interaction interaction) {
         GameObject triggerObj = null;
         PointerEventData.InputButton button = PointerEventData.InputButton.Left;
-        bool prepend = false;
         if (interaction is PlayCardInteraction) {
             var pci = (PlayCardInteraction) interaction;
             triggerObj = controller.handArea.getObject(pci.target).gameObject;
@@ -136,7 +137,10 @@ public class InteractionManager : MonoBehaviour
         else if (interaction is SelectTargetInteraction) {
             var sti = (SelectTargetInteraction) interaction;
             triggerObj = sti.target;
-            prepend = true;
+        }
+        else if (interaction is CancelSelectionInteraction) {
+            var csi = (CancelSelectionInteraction) interaction;
+            triggerObj = passTurnButton;
         }
 
 
@@ -149,8 +153,7 @@ public class InteractionManager : MonoBehaviour
         entry.callback.AddListener((ed) => {
             if (((PointerEventData) ed).button == button) {
                 flushInteractions();
-                if (prepend) GS.PushInteraction(interaction);
-                else GS.PushInteraction(interaction);
+                GS.PushInteraction(interaction);
             }
         });
         triggerObj.GetComponent<EventTrigger>().triggers.Add(entry);

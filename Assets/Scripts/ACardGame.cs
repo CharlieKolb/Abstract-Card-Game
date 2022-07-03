@@ -262,19 +262,33 @@ public static class GS
         interactionQueue.Insert(0, interaction.execute());
     }
 
-    static ConcurrentQueue<IEnumerator<EffectTarget>> targetQueue = new ConcurrentQueue<IEnumerator<EffectTarget>>();
+    static List<IEnumerator<EffectTarget>> targetQueue = new List<IEnumerator<EffectTarget>>();
     public static EffectTarget target;
     public static bool isResolvingEffects => targetQueue.Count > 0;
 
-    public static void ResolveEffectTargets(Effect effect, Player owner) {
-        targetQueue.Enqueue(effect.resolveTargets());
+    // Return false if cancelled
+    public static EffectTarget ResolveEffectTargets(Effect effect, Player owner) {
+        var effectTargets = effect.resolveTargets();
+        if (!effectTargets.MoveNext()) return null;
+    
+        var cur = effectTargets.Current;
+        targetQueue.Insert(0, effectTargets);
+        return cur;
+    }
+
+    public static void CancelSelection() {
+        while (targetQueue.Count > 0) {
+            var front = targetQueue[0];
+            if (front.Current != null) front.Current.cancelled = true;
+            targetQueue.RemoveAt(0);
+        }
+        target = null;
     }
 
     public static void Tick() {
         while (targetQueue.Count > 0) {
-            IEnumerator<EffectTarget> front;
-            targetQueue.TryPeek(out front);
-            if (!front.MoveNext()) targetQueue.TryDequeue(out front);
+            var front = targetQueue[0];
+            if (!front.MoveNext()) targetQueue.RemoveAt(0);
             else {
                 GS.target = front.Current;
                 break;
@@ -283,7 +297,8 @@ public static class GS
 
         while (interactionQueue.Count > 0) {
             IEnumerator<bool> front = interactionQueue[0];
-            if (!front.MoveNext()) interactionQueue.RemoveAt(0);
+            if (!front.MoveNext() || front.Current == false)
+                interactionQueue.RemoveAt(0);
             else {
                 break;
             }

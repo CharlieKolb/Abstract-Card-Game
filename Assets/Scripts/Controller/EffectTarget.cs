@@ -9,6 +9,12 @@ public class EffectTarget {
     public Predicate<(GameObject, EffectTargetContext)> isValidTargetCondition;
     public Action<(GameObject, EffectTargetContext)> callback { set; get; }
     public bool called = false;
+    public bool cancelled = false;
+
+    public void reset() {
+        called = false;
+        cancelled = false;
+    }
 }
 
 static class EffectTargets {
