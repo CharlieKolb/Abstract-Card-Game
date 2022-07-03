@@ -40,7 +40,6 @@ public class Side
     public CreatureCollection creatures;
     public Deck deck;
     public Graveyard graveyard;
-    public HP hp;
     public Energy energy;
     public Energy maxEnergy;
 
@@ -51,7 +50,6 @@ public class Side
         hand = new Hand();
         creatures = new CreatureCollection();
         graveyard = new Graveyard();
-        hp = new HP();
         maxEnergy = new Energy(); 
         energy = new Energy(maxEnergy);
 
@@ -71,13 +69,6 @@ public class Side
 
         return false;
     }
-}
-
-// Symmetric 
-public class StandardBattlefield
-{
-    Side player1;
-    Side player2;
 }
 
 public class F
@@ -145,13 +136,6 @@ public class CreatureCardBlueprint : CardBlueprint {
     {
         return new CreatureCard(this);
     }
-}
-
-
-
-public class HP
-{
-    public int points = 20;
 }
 
 

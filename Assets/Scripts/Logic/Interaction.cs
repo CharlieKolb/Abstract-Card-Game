@@ -3,8 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 
 public abstract class Interaction {
-    public delegate void OnExecute();
-    public event OnExecute onExecute;
     public bool executed = false;
 
     public IEnumerator<bool> execute() {
@@ -16,7 +14,6 @@ public abstract class Interaction {
             }
         }
 
-        onExecute?.Invoke();
         doExecute();        
         executed = true;
     }
@@ -114,13 +111,10 @@ public class PlayCardInteraction : Interaction {
             results.ForEach(x => { if(x != null) x.reset(); });
             yield return false;
         }
-        Debug.Log("O");
-
 
         GS.energyActionHandler.Invoke(EnergyActionKey.PAY, new EnergyPayload(target.cost, target), () => {
             owner.side.energy = owner.side.energy.Without(target.cost);
         });
-        yield return true;
     }
 
     protected override void doExecute()
