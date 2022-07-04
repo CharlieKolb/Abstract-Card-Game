@@ -436,13 +436,13 @@ public class ACardGame : MonoBehaviour
         var maker = new CardBPMaker(Instantiate, cardPrefab);
 
         var deckBp1 = new DeckBlueprint(new Dictionary<CardBlueprint, int>{
-            { maker.makeCreatureBP("Brute"), 15 },
-            { maker.makeCreatureBP("Fisher"), 5 },
+            { maker.makeCreatureBP("Baseball Kid"), 15 },
+            { maker.makeCreatureBP("Ojama Green"), 5 },
         });
 
         var deckBp2 = new DeckBlueprint(new Dictionary<CardBlueprint, int>{
-            { maker.makeCreatureBP("Fisher"), 15 },
-            { maker.makeCreatureBP("Guardian"), 5 },
+            { maker.makeCreatureBP("Mystical Elf"), 15 },
+            { maker.makeCreatureBP("Ojama Green"), 5 },
         });
 
 
