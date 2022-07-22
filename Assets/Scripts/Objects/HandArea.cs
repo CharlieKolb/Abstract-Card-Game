@@ -35,7 +35,7 @@ public class HandArea : Area<Hand, Card, CardObject> {
 
 
     protected override void initCollection() {
-        GS.handActionHandler.after.on(HandActionKey.COUNT_CHANGED, (x) => {
+        GS.ga.handActionHandler.after.on(HandActionKey.COUNT_CHANGED, (x) => {
             if (x.collection == this.collection) doRefresh(x.diff);
         });
         

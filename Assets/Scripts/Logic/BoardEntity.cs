@@ -27,7 +27,7 @@ public class CreatureEntity : BoardEntity
     {
         this.baseData = data;
         this.stats = new Stats(data.stats);
-        GS.phaseActionHandler.after.on(PhaseActionKey.ENTER, p => {
+        GS.ga.phaseActionHandler.after.on(PhaseActionKey.ENTER, p => {
             if (GS.gameStateData.activeController.player == owner && p.phase == Phases.drawPhase) {
                 hasAttacked = false;
             }

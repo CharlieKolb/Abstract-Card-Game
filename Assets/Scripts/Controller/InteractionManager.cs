@@ -61,7 +61,7 @@ public class InteractionManager : MonoBehaviour
     void Start()
     {
         controller = GetComponentInParent<AbstractCardGameController>();   
-        GS.phaseActionHandler.after.on(PhaseActionKey.ENTER, (_) => flushInteractions());
+        GS.ga.phaseActionHandler.after.on(PhaseActionKey.ENTER, (_) => flushInteractions());
 
         passTurnButton = transform.Find("PassTurnButton").gameObject;
     }

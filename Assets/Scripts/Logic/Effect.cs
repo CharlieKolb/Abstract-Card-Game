@@ -36,7 +36,7 @@ public abstract class Effect : Entity
     }
 
     public void apply(Player owner) {
-        GS.effectActionHandler.Invoke(EffectActionKey.TRIGGERED, new EffectPayload(this), () => doApply(owner));
+        GS.ga.effectActionHandler.Invoke(EffectActionKey.TRIGGERED, new EffectPayload(this), () => doApply(owner));
     }
 
     public abstract Effect Clone();
@@ -95,11 +95,11 @@ public class DamagePlayerEffect : Effect, IDamageEffect {
     protected override void doApply(Player owner)
     {
         var board = owner.side.creatures;
-        GS.playerActionHandler.Invoke(PlayerActionKey.DAMAGED, new PlayerPayload(target), () => {
+        GS.ga.playerActionHandler.Invoke(PlayerActionKey.DAMAGED, new PlayerPayload(target), () => {
             target.lifepoints -= amount;
         });
         if (target.lifepoints <= 0) {
-            GS.playerActionHandler.Invoke(PlayerActionKey.DIES, new PlayerPayload(target), () => {
+            GS.ga.playerActionHandler.Invoke(PlayerActionKey.DIES, new PlayerPayload(target), () => {
                 target.triggerLoss();
             });
         }
@@ -129,12 +129,12 @@ public class DamageCreatureEffect : Effect {
 
     protected override void doApply(Player owner)
     {
-        GS.creatureActionHandler.Invoke(CreatureEntityActionKey.DAMAGED, new CreaturePayload(target), () => {
+        GS.ga.creatureActionHandler.Invoke(CreatureEntityActionKey.DAMAGED, new CreaturePayload(target), () => {
             target.stats.health -= amount;
         });
 
         if (target.stats.health <= 0) {
-            GS.creatureActionHandler.Invoke(
+            GS.ga.creatureActionHandler.Invoke(
                 CreatureEntityActionKey.DEATH,
                 new CreaturePayload(target),
                 () => {

@@ -112,7 +112,7 @@ public class PlayCardInteraction : Interaction {
             yield return false;
         }
 
-        GS.energyActionHandler.Invoke(EnergyActionKey.PAY, new EnergyPayload(target.cost, target), () => {
+        GS.ga.energyActionHandler.Invoke(EnergyActionKey.PAY, new EnergyPayload(target.cost, target), () => {
             owner.side.energy = owner.side.energy.Without(target.cost);
         });
     }

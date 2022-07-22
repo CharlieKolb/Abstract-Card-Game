@@ -22,7 +22,7 @@ public class PhaseDisplay : MonoBehaviour
             phases[i].transform.position = worldPos;
         }
         glowTransform = transform.Find("Glow").transform;
-        GS.phaseActionHandler.before.on(PhaseActionKey.ENTER, (_) => {
+        GS.ga.phaseActionHandler.before.on(PhaseActionKey.ENTER, (_) => {
             currentPhase += 1;
             if (currentPhase == count) currentPhase = 0;
             glowTransform.position = positions[currentPhase];

@@ -9,9 +9,9 @@ public class CardGameAiController : AbstractCardGameController {
 
     protected override void doInstantiate() {
         activeDelayLeft = delayBetweenActions;
-        GS.entityActionHandler.after.onAll((_) => activeDelayLeft = 0.5f);
-        GS.cardCollectionActionHandler.after.onAll((_) => activeDelayLeft = 0.5f);
-        GS.phaseActionHandler.after.on(PhaseActionKey.ENTER, (x) => {
+        GS.ga.entityActionHandler.after.onAll((_) => activeDelayLeft = 0.5f);
+        GS.ga.cardCollectionActionHandler.after.onAll((_) => activeDelayLeft = 0.5f);
+        GS.ga.phaseActionHandler.after.on(PhaseActionKey.ENTER, (x) => {
             if (x.phase == Phases.drawPhase && GS.gameStateData.activeController == this) {
                 saccedThisTurn = false;
             }

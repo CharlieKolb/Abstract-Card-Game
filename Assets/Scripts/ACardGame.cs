@@ -53,7 +53,7 @@ public class Side
         maxEnergy = new Energy(); 
         energy = new Energy(maxEnergy);
 
-        GS.phaseActionHandler.after.on(PhaseActionKey.ENTER, p => {
+        GS.ga.phaseActionHandler.after.on(PhaseActionKey.ENTER, p => {
             if (p.phase == Phases.drawPhase && GS.gameStateData.activeController.player == player) {
                 energy = new Energy(maxEnergy);
             }
@@ -177,38 +177,46 @@ public class GameStateData {
     public Turn currentTurn;
     public AbstractCardGameController activeController;
     public AbstractCardGameController passiveController;
+}
+
+
+public class GameActions {
+    public GameActionHandler<PlayerPayload> playerActionHandler = new GameActionHandler<PlayerPayload>();
+    
+    public GameActionHandler<CardActionPayload> cardActionHandler = new GameActionHandler<CardActionPayload>();
+
+    public GameActionHandler<CardCollectionPayload> cardCollectionActionHandler = new GameActionHandler<CardCollectionPayload>();
+    // into
+    public GameActionHandler<HandPayload> handActionHandler = new GameActionHandler<HandPayload>();
+    public GameActionHandler<DeckPayload> deckActionHandler = new GameActionHandler<DeckPayload>();
+    public GameActionHandler<GraveyardPayload> graveyardActionHandler = new GameActionHandler<GraveyardPayload>();
+    
+    
+    public GameActionHandler<CreatureAreaPayload> creatureAreaActionHandler = new GameActionHandler<CreatureAreaPayload>();
+
+    public GameActionHandler<EntityPayload> entityActionHandler = new GameActionHandler<EntityPayload>();
+    public GameActionHandler<BoardEntityPayload> boardActionHandler = new GameActionHandler<BoardEntityPayload>();
+    public GameActionHandler<CreaturePayload> creatureActionHandler = new GameActionHandler<CreaturePayload>();
+
+
+    public GameActionHandler<EnergyPayload> energyActionHandler = new GameActionHandler<EnergyPayload>();
+
+    public GameActionHandler<PhasePayload> phaseActionHandler = new GameActionHandler<PhasePayload>();
+
+    public GameActionHandler<EffectPayload> effectActionHandler = new GameActionHandler<EffectPayload>();
+
 
 }
+
 
 public static class GS
 {
     // to be initialized
     public static GameStateData gameStateData = new GameStateData();
+    public static GameActions ga = new GameActions();
+
+
     // end
-    public static GameActionHandler<PlayerPayload> playerActionHandler = new GameActionHandler<PlayerPayload>();
-    
-    public static GameActionHandler<CardActionPayload> cardActionHandler = new GameActionHandler<CardActionPayload>();
-
-    public static GameActionHandler<CardCollectionPayload> cardCollectionActionHandler = new GameActionHandler<CardCollectionPayload>();
-    // into
-    public static GameActionHandler<HandPayload> handActionHandler = new GameActionHandler<HandPayload>();
-    public static GameActionHandler<DeckPayload> deckActionHandler = new GameActionHandler<DeckPayload>();
-    public static GameActionHandler<GraveyardPayload> graveyardActionHandler = new GameActionHandler<GraveyardPayload>();
-    
-    
-    public static GameActionHandler<CreatureAreaPayload> creatureAreaActionHandler = new GameActionHandler<CreatureAreaPayload>();
-
-    public static GameActionHandler<EntityPayload> entityActionHandler = new GameActionHandler<EntityPayload>();
-    public static GameActionHandler<BoardEntityPayload> boardActionHandler = new GameActionHandler<BoardEntityPayload>();
-    public static GameActionHandler<CreaturePayload> creatureActionHandler = new GameActionHandler<CreaturePayload>();
-
-
-    public static GameActionHandler<EnergyPayload> energyActionHandler = new GameActionHandler<EnergyPayload>();
-
-    public static GameActionHandler<PhasePayload> phaseActionHandler = new GameActionHandler<PhasePayload>();
-
-    public static GameActionHandler<EffectPayload> effectActionHandler = new GameActionHandler<EffectPayload>();
-
     // Need an explicit (action, after) stack for cards to interact with queued casts
     private static List<(Action, Action)> gameStack = new List<(Action, Action)>();
 
@@ -299,10 +307,10 @@ public class GamePhase
     }
 
     public void executeEntry() {
-        GS.phaseActionHandler.Invoke(PhaseActionKey.ENTER, new PhasePayload(this), () => _onEntry.Invoke(this));
+        GS.ga.phaseActionHandler.Invoke(PhaseActionKey.ENTER, new PhasePayload(this), () => _onEntry.Invoke(this));
     }
     public void executeExit() {
-        GS.phaseActionHandler.Invoke(PhaseActionKey.EXIT, new PhasePayload(this), () => _onExit.Invoke(this));
+        GS.ga.phaseActionHandler.Invoke(PhaseActionKey.EXIT, new PhasePayload(this), () => _onExit.Invoke(this));
     }
     public bool hasOptions() { return _hasOptions.Invoke(this); }
     public GamePhase nextPhase() { return _nextPhase.Invoke(); }
@@ -350,7 +358,7 @@ public class Turn : ITurn<TurnContext>
     public override void startTurn()
     {
         GS.gameStateData.currentTurn = this;
-        GS.phaseActionHandler.Invoke(PhaseActionKey.ENTER, new PhasePayload(Phases.drawPhase), () => {
+        GS.ga.phaseActionHandler.Invoke(PhaseActionKey.ENTER, new PhasePayload(Phases.drawPhase), () => {
             this.currentPhase = Phases.drawPhase;
         });
     }

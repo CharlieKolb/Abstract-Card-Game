@@ -53,7 +53,7 @@ public class CreatureCollection : BoardCollection<CreatureEntity> {
 
     protected override void InvokeCountChanged(Diff<CreatureEntity> diff, Action action)
     {
-        GS.creatureAreaActionHandler.Invoke(
+        GS.ga.creatureAreaActionHandler.Invoke(
             BoardAreaActionKey.COUNT_CHANGED,
             new CreatureAreaPayload(this, diff),
             action
@@ -132,7 +132,7 @@ public abstract class CardCollection : Collection<Card>
     }
 
     public void add(Card card) {
-        GS.cardCollectionActionHandler.Invoke(
+        GS.ga.cardCollectionActionHandler.Invoke(
             CardCollectionActionKey.COUNT_CHANGED,
             new CardCollectionPayload(this, Differ<Card>.FromAdded(card)),
             () => content.Add(card)
@@ -140,7 +140,7 @@ public abstract class CardCollection : Collection<Card>
     }
 
     public void remove(Card card) {
-        GS.cardCollectionActionHandler.Invoke(
+        GS.ga.cardCollectionActionHandler.Invoke(
             CardCollectionActionKey.COUNT_CHANGED,
             new CardCollectionPayload(this, Differ<Card>.FromRemoved(card)),
             () => content.Remove(card)
@@ -168,8 +168,8 @@ public abstract class CardCollection : Collection<Card>
 public class Deck : CardCollection
 {
     public Deck() {
-        GS.cardCollectionActionHandler.before.onAll(x => { if (Equals(x.arg.collection)) GS.deckActionHandler.before.Trigger(x.key, makePayload(x.arg)); });
-        GS.cardCollectionActionHandler.after.onAll(x => { if (Equals(x.arg.collection)) GS.deckActionHandler.after.Trigger(x.key, makePayload(x.arg)); });
+        GS.ga.cardCollectionActionHandler.before.onAll(x => { if (Equals(x.arg.collection)) GS.ga.deckActionHandler.before.Trigger(x.key, makePayload(x.arg)); });
+        GS.ga.cardCollectionActionHandler.after.onAll(x => { if (Equals(x.arg.collection)) GS.ga.deckActionHandler.after.Trigger(x.key, makePayload(x.arg)); });
     }
     
     private DeckPayload makePayload(CardCollectionPayload cp) {
@@ -209,8 +209,8 @@ public class Deck : CardCollection
 public class Graveyard : CardCollection
 {
     public Graveyard() {
-        GS.cardCollectionActionHandler.before.onAll(x => { if (Equals(x.arg.collection)) GS.graveyardActionHandler.before.Trigger(x.key, makePayload(x.arg)); });
-        GS.cardCollectionActionHandler.after.onAll(x => { if (Equals(x.arg.collection)) GS.graveyardActionHandler.after.Trigger(x.key, makePayload(x.arg)); });
+        GS.ga.cardCollectionActionHandler.before.onAll(x => { if (Equals(x.arg.collection)) GS.ga.graveyardActionHandler.before.Trigger(x.key, makePayload(x.arg)); });
+        GS.ga.cardCollectionActionHandler.after.onAll(x => { if (Equals(x.arg.collection)) GS.ga.graveyardActionHandler.after.Trigger(x.key, makePayload(x.arg)); });
     }
 
     private GraveyardPayload makePayload(CardCollectionPayload cp) {
@@ -228,8 +228,8 @@ public class Graveyard : CardCollection
 public class Hand : CardCollection
 {
     public Hand() {
-        GS.cardCollectionActionHandler.before.onAll(x => { if (Equals(x.arg.collection)) GS.handActionHandler.before.Trigger(x.key, makePayload(x.arg)); });
-        GS.cardCollectionActionHandler.after.onAll(x => { if (Equals(x.arg.collection)) GS.handActionHandler.after.Trigger(x.key, makePayload(x.arg)); });
+        GS.ga.cardCollectionActionHandler.before.onAll(x => { if (Equals(x.arg.collection)) GS.ga.handActionHandler.before.Trigger(x.key, makePayload(x.arg)); });
+        GS.ga.cardCollectionActionHandler.after.onAll(x => { if (Equals(x.arg.collection)) GS.ga.handActionHandler.after.Trigger(x.key, makePayload(x.arg)); });
     }
 
     private HandPayload makePayload(CardCollectionPayload cp) {
