@@ -49,6 +49,10 @@ public class PlayerActionKey : IKeyBase {
     public static string DIES = "DIES";
 }
 
+public class EffectActionKey : IKeyBase {
+    public static string TRIGGERED = "TRIGGERED";
+}
+
 public class CardActionKey : IKeyBase {
     public static string DRAW = "DRAW";
     public static string USE = "USE";
@@ -116,6 +120,14 @@ public class PlayerPayload {
 
     public PlayerPayload(Player target) {
         this.target = target;
+    }
+}
+
+public class EffectPayload {
+    public Effect effect;
+
+    public EffectPayload(Effect effect) {
+        this.effect = effect;
     }
 }
 

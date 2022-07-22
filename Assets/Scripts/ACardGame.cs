@@ -207,18 +207,7 @@ public static class GS
 
     public static GameActionHandler<PhasePayload> phaseActionHandler = new GameActionHandler<PhasePayload>();
 
-    public static bool debug = false;
-
-    static GS() {
-        if (debug) {
-            cardActionHandler.before.onAll(x => Debug.Log(x.ToString()));
-            cardCollectionActionHandler.before.onAll(x => Debug.Log(x.ToString()));
-            handActionHandler.before.onAll(x => Debug.Log(x.ToString()));
-            deckActionHandler.before.onAll(x => Debug.Log(x.ToString()));
-            graveyardActionHandler.before.onAll(x => Debug.Log(x.ToString()));
-            creatureAreaActionHandler.before.onAll(x => Debug.Log(x.ToString()));
-        }
-    }
+    public static GameActionHandler<EffectPayload> effectActionHandler = new GameActionHandler<EffectPayload>();
 
     // Need an explicit (action, after) stack for cards to interact with queued casts
     private static List<(Action, Action)> gameStack = new List<(Action, Action)>();

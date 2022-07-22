@@ -1,5 +1,6 @@
 using System.Linq;
 using System.Collections.Generic;
+using System;
 
 using UnityEngine;
 
@@ -35,7 +36,7 @@ public abstract class Effect : Entity
     }
 
     public void apply(Player owner) {
-        doApply(owner);
+        GS.effectActionHandler.Invoke(EffectActionKey.TRIGGERED, new EffectPayload(this), () => doApply(owner));
     }
 
     public abstract Effect Clone();
@@ -54,7 +55,36 @@ public class SelfDrawEffect : Effect
     }
 }
 
-public class DamagePlayerEffect : Effect {
+public class PersistentConditionalEffect {
+    // todo
+}
+
+
+public interface IDamageEffect { 
+    public int getAmount();
+    public void setAmount(int x);
+}
+
+public class MutateDamageEffect : Effect {
+    Func<int, int> formula;
+    IDamageEffect damageEffect;
+    public MutateDamageEffect(Func<int, int> formula, IDamageEffect damageEffect) {
+        this.formula = formula;
+        this.damageEffect = damageEffect;
+    }
+
+    protected override void doApply(Player owner)
+    {
+        damageEffect.setAmount(formula(damageEffect.getAmount()));
+    }
+
+    public override Effect Clone()
+    {
+        return new MutateDamageEffect(formula, damageEffect);
+    }
+}
+
+public class DamagePlayerEffect : Effect, IDamageEffect {
     int amount;
     Player target;
     public DamagePlayerEffect(int amount, Player target) {
@@ -73,6 +103,14 @@ public class DamagePlayerEffect : Effect {
                 target.triggerLoss();
             });
         }
+    }
+
+    public int getAmount() {
+        return amount;
+    }
+
+    public void setAmount(int x) {
+        amount = x;
     }
 
     public override Effect Clone()
@@ -107,6 +145,14 @@ public class DamageCreatureEffect : Effect {
                 }
             );
         }
+    }
+
+    public int getAmount() {
+        return amount;
+    }
+
+    public void setAmount(int x) {
+        amount = x;
     }
 
     public override Effect Clone()
