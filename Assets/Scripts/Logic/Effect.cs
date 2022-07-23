@@ -2,11 +2,56 @@ using System.Linq;
 using System.Collections.Generic;
 using System;
 
-using UnityEngine;
+public class EffectContext {
+    public BoardEntity targetEntity;
+    public int? targetIndex;
 
-public class EffectTargetContext {
-    public Player owner { set; get; }
+    public Effect effect;
+    public Player owner;
+
+    public EffectContext WithTarget(BoardEntity target) {
+        this.targetEntity = target;
+        return this;
+    }
+
+    public EffectContext WithTargetIndex(int? index) {
+        this.targetIndex = index;
+        return this;
+    }
+
+    public EffectContext WithEffect(Effect effect) {
+        this.effect = effect;
+        return this;
+    }
+
+    public EffectContext WithOwner(Player owner) {
+        this.owner = owner;
+        return this;
+    }
+
+    public override bool Equals(object obj)
+    {
+        if (obj == null || GetType() != obj.GetType())
+        {
+            return false;
+        }
+
+        var oth = (EffectContext) obj;
+        return this.targetEntity == oth.targetEntity &&
+                this.targetIndex == oth.targetIndex &&
+                this.effect == oth.effect &&
+                this.owner == oth.owner;
+    }
+    
+    public override int GetHashCode()
+    {
+        return (effect == null ? 5 : effect.GetHashCode()) +
+            10 * owner.GetHashCode() +
+            20 * targetIndex.GetValueOrDefault(10) +
+            (targetEntity == null ? 25 : targetEntity.GetHashCode());
+    }
 }
+
 
 public abstract class Effect : Entity
 {
@@ -20,7 +65,7 @@ public abstract class Effect : Entity
     }
 
     public virtual bool canApply(Player owner) {
-        return requests.All(x => x.hasValidTargetCondition(new EffectTargetContext { owner=owner }));
+        return requests.All(x => x.hasValidTargetCondition(new EffectContext().WithOwner(owner)));
     }
 
     protected abstract void doApply(Player owner);
@@ -138,7 +183,7 @@ public class DamageCreatureEffect : Effect {
                 CreatureEntityActionKey.DEATH,
                 new CreaturePayload(target),
                 () => {
-                    var x = getContext().WithEffect(this).WithSource(owner).WithTarget(target);
+                    var x = getContext().WithEffect(this).WithOwner(owner).WithTarget(target);
                     // Just clear it on both rather than looking, should probably have a function for this
                     GS.gameStateData.activeController.player.side.creatures.clearEntity(target, x);
                     GS.gameStateData.passiveController.player.side.creatures.clearEntity(target, x);

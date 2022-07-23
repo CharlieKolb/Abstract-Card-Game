@@ -226,19 +226,17 @@ public class SacCardInteraction : Interaction {
 
 public class DoSelectTargetInteraction : Interaction {
     EffectTarget effect;
-    public GameObject target;
-    EffectTargetContext context;
+    public EffectContext context;
 
-    public DoSelectTargetInteraction(EffectTarget effect, GameObject target, EffectTargetContext context) {
+    public DoSelectTargetInteraction(EffectTarget effect, EffectContext context) {
         this.effect = effect;
-        this.target = target;
         this.context = context;
     }
 
     
     protected override void doExecute()
     {
-        effect.callback((target, context));
+        effect.callback(context);
         effect.called = true;
     }
 
@@ -250,13 +248,13 @@ public class DoSelectTargetInteraction : Interaction {
             return false;
         }
         var oth = (DoSelectTargetInteraction) obj;
-        return target == oth.target; // we ignore player as creatures are unique
+        return context == oth.context; // we ignore player as creatures are unique
     }
     
     // override object.GetHashCode
     public override int GetHashCode()
     {
-        return target.GetHashCode();
+        return context.GetHashCode();
     }
 }
 

@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Threading;
+using System.Threading.Tasks;
 using UnityEngine;
 
 using System.Linq;
@@ -10,66 +11,6 @@ using System;
 
 using CardGameInterface;
 
-public class EffectContext {
-    public BoardEntity target;
-
-    public Effect effect;
-    public Player source;
-
-    public EffectContext WithTarget(BoardEntity target) {
-        this.target = target;
-        return this;
-    }
-
-    public EffectContext WithEffect(Effect effect) {
-        this.effect = effect;
-        return this;
-    }
-
-    public EffectContext WithSource(Player source) {
-        this.source = source;
-        return this;
-    }
-}
-
-
-public class Side
-{
-    public Player player;
-    public Hand hand;
-    public CreatureCollection creatures;
-    public Deck deck;
-    public Graveyard graveyard;
-    public Energy energy;
-    public Energy maxEnergy;
-
-    public Side(DeckBlueprint deckBlueprint, Player player) {
-        deck = Deck.FromBlueprint(deckBlueprint);
-        this.player = player;
-
-        hand = new Hand();
-        creatures = new CreatureCollection();
-        graveyard = new Graveyard();
-        maxEnergy = new Energy(); 
-        energy = new Energy(maxEnergy);
-
-        GS.ga.phaseActionHandler.after.on(PhaseActionKey.ENTER, p => {
-            if (p.phase == Phases.drawPhase && GS.gameStateData.activeController.player == player) {
-                energy = new Energy(maxEnergy);
-            }
-        });
-    }
-
-    public bool hasOptions()
-    {
-        foreach (var e in hand.getExisting())
-        {
-            if (e.value.canUseFromHand(player)) return true;
-        }
-
-        return false;
-    }
-}
 
 public class F
 {
@@ -265,8 +206,6 @@ public class GS
         gameStateData.activeController.im.target = null;
     }
 
-    // static GameEngine gameEngine = new GameEngine();
-
     public static void Tick() {
         while (targetQueue.Count > 0) {
             var front = targetQueue[0];
@@ -288,17 +227,6 @@ public class GS
         }
     }
 }
-
-
-// public class GameEngine {
-//     GS gameState;
-
-//     List<IEnumerator<bool>> interactionQueue = new List<IEnumerator<bool>>();
-
-
-//     public void Tick() {
-//     }
-// }
 
 
 // Note that even before the beginning of a phase currentPhase of a Turn will already be changed

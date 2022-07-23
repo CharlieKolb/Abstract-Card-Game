@@ -1,2 +1,2 @@
-public class Entity {
+public class Entity : ITargetable {
 }

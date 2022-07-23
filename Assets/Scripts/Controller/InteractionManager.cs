@@ -6,10 +6,18 @@ using UnityEngine.EventSystems;
 
 using System.Linq;
 
+struct InteractionMapperResult {
+    Action customCallback;
+}
+
+interface IInteractionMapper {
+    InteractionMapperResult handleInteraction(Interaction interaction, Action triggerCallback);
+}
+
 public class InteractionManager : MonoBehaviour
 {
     public EffectTarget target;
-
+    public Dictionary<EffectContext, GameObject> goMapper = new Dictionary<EffectContext, GameObject>();
 
     // Do not consume more than one interaction per call
     public List<Interaction> getInteractions() {
@@ -17,8 +25,21 @@ public class InteractionManager : MonoBehaviour
 
         if (target != null) {
             var targetable = GameObject.FindGameObjectsWithTag("Targetable")
-                .Where(x => target.isValidTargetCondition.Invoke((x, new EffectTargetContext{ owner = GS.gameStateData.activeController.player })))
-                .Select(x => new DoSelectTargetInteraction(target, x, new EffectTargetContext{ owner = GS.gameStateData.activeController.player }))
+                .Select(go => {
+                    var ec = new EffectContext();
+                    ec = ec.WithOwner(controller.player);
+
+                    var cf = go.GetComponent<CreatureField>();
+                    if (cf != null) {
+                        ec = ec.WithTargetIndex(cf.index);
+                    }
+
+                    goMapper[ec] = go;
+
+                    return ec;
+                })
+                .Where(target.isValidTargetCondition.Invoke)
+                .Select(ec => new DoSelectTargetInteraction(target, ec))
                 .ToList<Interaction>();
 
             return targetable.Concat(new List<Interaction>{ new CancelSelectionInteraction(target) }).ToList();
@@ -87,6 +108,7 @@ public class InteractionManager : MonoBehaviour
             act();
         }
         currentInteractions.Clear();
+        goMapper.Clear();
         updateInteractions();
     }
 
@@ -140,7 +162,7 @@ public class InteractionManager : MonoBehaviour
         }
         else if (interaction is DoSelectTargetInteraction) {
             var sti = (DoSelectTargetInteraction) interaction;
-            triggerObj = sti.target;
+            triggerObj = goMapper[sti.context];
             customCallback = () => {
                 target = null;
             };
