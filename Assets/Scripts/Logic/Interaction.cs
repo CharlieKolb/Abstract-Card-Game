@@ -176,15 +176,60 @@ public class SacCardInteraction : Interaction {
     {
         return target.GetHashCode();
     }
-
 }
 
-public class SelectTargetInteraction : Interaction {
+// public class SelectTargetsInteraction : Interaction {
+//     Effect effect;
+//     List<(EffectTarget, GameObject, EffectContext)> targets = new List<(EffectTarget, GameObject, EffectContext)>();
+
+//     public SelectTargetsInteraction(Effect effect) {
+//         this.effect = effect;
+//     }
+
+//     protected override IEnumerator<bool> startExecute() {
+//         var effectTargets = effect.resolveTargets();
+//         if (!effectTargets.MoveNext()) yield break;
+//         while (effectTargets.MoveNext()) {
+            
+//             var target = effectTargets.Current;
+
+//             target.isValidTargetCondition.Invoke((x, new EffectTargetContext{ owner = GS.gameStateData.activeController.player }));
+//         }
+//     }
+
+    
+//     protected override void doExecute()
+//     {
+//         effect.callback((target, context));
+//         effect.called = true;
+//     }
+
+//     // override object.Equals
+//     public override bool Equals(object obj)
+//     {
+//         if (obj == null || GetType() != obj.GetType())
+//         {
+//             return false;
+//         }
+//         var oth = (SelectTargetsInteraction) obj;
+//         return effect == oth.effect;
+//     }
+    
+//     // override object.GetHashCode
+//     public override int GetHashCode()
+//     {
+//         return target.GetHashCode();
+//     }
+// }
+
+
+
+public class DoSelectTargetInteraction : Interaction {
     EffectTarget effect;
     public GameObject target;
     EffectTargetContext context;
 
-    public SelectTargetInteraction(EffectTarget effect, GameObject target, EffectTargetContext context) {
+    public DoSelectTargetInteraction(EffectTarget effect, GameObject target, EffectTargetContext context) {
         this.effect = effect;
         this.target = target;
         this.context = context;
@@ -193,7 +238,6 @@ public class SelectTargetInteraction : Interaction {
     
     protected override void doExecute()
     {
-        GS.target = null;
         effect.callback((target, context));
         effect.called = true;
     }
@@ -205,7 +249,7 @@ public class SelectTargetInteraction : Interaction {
         {
             return false;
         }
-        var oth = (SelectTargetInteraction) obj;
+        var oth = (DoSelectTargetInteraction) obj;
         return target == oth.target; // we ignore player as creatures are unique
     }
     
@@ -245,5 +289,4 @@ public class CancelSelectionInteraction : Interaction {
     {
         return effect.GetHashCode();
     }
-
 }

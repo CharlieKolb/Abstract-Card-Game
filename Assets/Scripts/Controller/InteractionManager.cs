@@ -8,17 +8,20 @@ using System.Linq;
 
 public class InteractionManager : MonoBehaviour
 {
+    public EffectTarget target;
+
+
     // Do not consume more than one interaction per call
     public List<Interaction> getInteractions() {
         var res = new List<Interaction>();
 
-        if (GS.target != null) {
+        if (target != null) {
             var targetable = GameObject.FindGameObjectsWithTag("Targetable")
-                .Where(x => GS.target.isValidTargetCondition.Invoke((x, new EffectTargetContext{ owner = GS.gameStateData.activeController.player })))
-                .Select(x => new SelectTargetInteraction(GS.target, x, new EffectTargetContext{ owner = GS.gameStateData.activeController.player }))
+                .Where(x => target.isValidTargetCondition.Invoke((x, new EffectTargetContext{ owner = GS.gameStateData.activeController.player })))
+                .Select(x => new DoSelectTargetInteraction(target, x, new EffectTargetContext{ owner = GS.gameStateData.activeController.player }))
                 .ToList<Interaction>();
 
-            return targetable.Concat(new List<Interaction>{ new CancelSelectionInteraction(GS.target) }).ToList();
+            return targetable.Concat(new List<Interaction>{ new CancelSelectionInteraction(target) }).ToList();
         }
 
         if (controller == GS.gameStateData.activeController) {
@@ -116,6 +119,7 @@ public class InteractionManager : MonoBehaviour
     Action SpawnInteraction(Interaction interaction) {
         GameObject triggerObj = null;
         PointerEventData.InputButton button = PointerEventData.InputButton.Left;
+        Action customCallback = () => {};
         if (interaction is PlayCardInteraction) {
             var pci = (PlayCardInteraction) interaction;
             triggerObj = controller.handArea.getObject(pci.target).gameObject;
@@ -134,9 +138,12 @@ public class InteractionManager : MonoBehaviour
             var dai = (DeclareAttackInteraction) interaction;
             triggerObj = controller.creatureArea.getObject(dai.creature).gameObject;
         }
-        else if (interaction is SelectTargetInteraction) {
-            var sti = (SelectTargetInteraction) interaction;
+        else if (interaction is DoSelectTargetInteraction) {
+            var sti = (DoSelectTargetInteraction) interaction;
             triggerObj = sti.target;
+            customCallback = () => {
+                target = null;
+            };
         }
         else if (interaction is CancelSelectionInteraction) {
             var csi = (CancelSelectionInteraction) interaction;
@@ -158,6 +165,7 @@ public class InteractionManager : MonoBehaviour
         });
         triggerObj.GetComponent<EventTrigger>().triggers.Add(entry);
         return () => {
+            customCallback();
             entry.callback.RemoveAllListeners();
         };
     }

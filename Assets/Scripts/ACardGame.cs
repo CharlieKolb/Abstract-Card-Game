@@ -209,7 +209,7 @@ public class GameActions {
 }
 
 
-public static class GS
+public class GS
 {
     // to be initialized
     public static GameStateData gameStateData = new GameStateData();
@@ -244,7 +244,6 @@ public static class GS
     }
 
     static List<IEnumerator<EffectTarget>> targetQueue = new List<IEnumerator<EffectTarget>>();
-    public static EffectTarget target;
     public static bool isResolvingEffects => targetQueue.Count > 0;
 
     // Return false if cancelled
@@ -263,29 +262,43 @@ public static class GS
             if (front.Current != null) front.Current.cancelled = true;
             targetQueue.RemoveAt(0);
         }
-        target = null;
+        gameStateData.activeController.im.target = null;
     }
+
+    // static GameEngine gameEngine = new GameEngine();
 
     public static void Tick() {
         while (targetQueue.Count > 0) {
             var front = targetQueue[0];
             if (!front.MoveNext()) targetQueue.RemoveAt(0);
             else {
-                GS.target = front.Current;
+                gameStateData.activeController.im.target = front.Current;
                 break;
             }
         }
 
         while (interactionQueue.Count > 0) {
             IEnumerator<bool> front = interactionQueue[0];
-            if (!front.MoveNext() || front.Current == false)
+            if (!front.MoveNext() || front.Current == false) {
                 interactionQueue.RemoveAt(0);
+            }
             else {
-                break;
+                return;
             }
         }
     }
 }
+
+
+// public class GameEngine {
+//     GS gameState;
+
+//     List<IEnumerator<bool>> interactionQueue = new List<IEnumerator<bool>>();
+
+
+//     public void Tick() {
+//     }
+// }
 
 
 // Note that even before the beginning of a phase currentPhase of a Turn will already be changed
