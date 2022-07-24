@@ -12,7 +12,16 @@ public class CardGamePlayerController : AbstractCardGameController {
     protected override async Task<Interaction> doSelectInteraction(List<Interaction> interactions) {
         
         var t = new TaskCompletionSource<Interaction>();
-        im.updateInteractions(interactions, (i) => t.SetResult(i));
+        
+        bool b = false;
+        im.updateInteractions(interactions, (i) => {
+            if (b) Debug.Log(i);
+            else {
+                // b = true;
+                t.SetResult(i);
+            }
+            
+        });
 
         return await t.Task;
     }

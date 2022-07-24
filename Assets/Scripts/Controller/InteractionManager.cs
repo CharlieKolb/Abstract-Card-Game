@@ -33,14 +33,23 @@ public class InteractionManager : MonoBehaviour
             return i.GetHashCode();
         }
     }
-    
-    Dictionary<int, List<(EventTrigger.Entry, List<EventTrigger.Entry>)>> eventDict = new Dictionary<int, List<(EventTrigger.Entry, List<EventTrigger.Entry>)>>();
+
+    List<Action> toBeCalled = new List<Action>();
+
+    List<List<Action>> activeTriggerCallbacks = new List<List<Action>>();    
     public void updateInteractions(List<Interaction> interactions, Action<Interaction> callback) {
-        int stackId = ++stack;
-        eventDict[stackId] = new List<(EventTrigger.Entry, List<EventTrigger.Entry>)>();
+        while (stack < activeTriggerCallbacks.Count) {
+            toBeCalled.AddRange(activeTriggerCallbacks[activeTriggerCallbacks.Count - 1]);
+            activeTriggerCallbacks.RemoveAt(activeTriggerCallbacks.Count - 1);
+        }
         
+        
+        int stackId = ++stack;
+
+        var myCBList = new List<Action>();
+        activeTriggerCallbacks.Add(myCBList);
         foreach (var iact in interactions) {
-            SpawnInteraction(iact, callback, stackId);
+            myCBList.Add(SpawnInteraction(iact, callback, stackId));
         }
     }
 
@@ -62,7 +71,7 @@ public class InteractionManager : MonoBehaviour
         return targetable[0].Item1;
     }
 
-    void SpawnInteraction(Interaction interaction, Action<Interaction> callback, int id) {
+    Action SpawnInteraction(Interaction interaction, Action<Interaction> callback, int id) {
         GameObject triggerObj = null;
         PointerEventData.InputButton button = PointerEventData.InputButton.Left;
         if (interaction is PlayCardInteraction) {
@@ -100,36 +109,30 @@ public class InteractionManager : MonoBehaviour
 
         var triggers = triggerObj.GetComponent<EventTrigger>().triggers;
         entry.callback.AddListener((ed) => {
-            lock(callback) {
-                if (ed.used) return;
+            if (((PointerEventData) ed).button == button) {
                 if (id != stack) {
                     Debug.Log("denied due to stack! mine: " + id + ", current: " + stack);
                     return; // swallow events for newer interactions so we don't resolve on their triggers
                 }
-                if (((PointerEventData) ed).button == button) {
-                    ed.Use();
-                    entry.callback.RemoveAllListeners();
-                    Debug.Log(triggers.Count);
-                    eventDict[id].ForEach(x => x.Item2.Remove(x.Item1));
-                    Debug.Log(triggers.Count);
-                    eventDict.Remove(id);
 
-                    --stack;
+                --stack;
 
-                    Debug.Log("mine: " + id + ", current: " + stack);
-                    callback(interaction);
-                }
+
+                callback(interaction);
             }
         });
 
-        if (!triggers.Contains(entry)) {
-            triggers.Add(entry);
-            eventDict[id].Add((entry, triggers));
-        }
+        triggers.Add(entry);
+        return () => {
+            triggers.Remove(entry);
+        };
+        // eventDict[id].Add((entry, triggers));
     }
 
     // Update is called once per frame
     void Update()
     {
+        toBeCalled.ForEach(x => x.Invoke());
+        toBeCalled.Clear();
     }
 }

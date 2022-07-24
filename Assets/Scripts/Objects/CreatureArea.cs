@@ -22,13 +22,18 @@ public class CreatureArea : Area<CreatureCollection, CreatureEntity, CreatureObj
         new Vector3(0.75f, 0, 0),
         new Vector3(1.5f, 0, 0),
     };
+
+    CreatureField[] fields = new CreatureField[5];
     
     public override void Start() {
         base.Start();
 
         for (int i = 0; i < positions.Length; ++i) {
             var obj = Instantiate(creatureFieldPrefab);
-            obj.GetComponent<CreatureField>().index = i;
+            
+            var cf = obj.GetComponent<CreatureField>();
+            cf.index = i;
+            fields[i] = cf;
             obj.transform.parent = transform;
             obj.transform.localPosition = (this.controller.opposing ? -1 : 1) * positions[i];
         }
@@ -45,6 +50,9 @@ public class CreatureArea : Area<CreatureCollection, CreatureEntity, CreatureObj
         GS.ga.creatureAreaActionHandler.after.on(CreatureAreaActionKey.COUNT_CHANGED, (x) =>  { 
             if(x.collection == collection) doRefresh(x.diff);
         });
+        for (int i = 0; i < fields.Length; ++i) {
+            fields[i].collection = collection;
+        }
     }
 
 
