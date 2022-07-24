@@ -1,6 +1,10 @@
 using UnityEngine;
+using System.Threading.Tasks;
+using System.Collections.Generic;
+using System.Linq;
 
-public abstract class AbstractCardGameController : MonoBehaviour {
+
+public abstract class AbstractCardGameController : MonoBehaviour, IInteractionHandler {
     [HideInInspector]
     public CreatureArea creatureArea;
     [HideInInspector]
@@ -28,4 +32,10 @@ public abstract class AbstractCardGameController : MonoBehaviour {
 
         doInstantiate();
     }
+
+    public async Task<Interaction> selectInteraction(List<Interaction> interactions) {
+        return await doSelectInteraction(interactions);
+    }
+
+    protected abstract Task<Interaction> doSelectInteraction(List<Interaction> interactions);
 }

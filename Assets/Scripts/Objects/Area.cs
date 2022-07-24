@@ -6,7 +6,7 @@ using CardGameInterface;
 using System.Collections.Generic;
 using System.Linq;
 
-public abstract class Area<Collection, Content, ContentObject> : MonoBehaviour
+public abstract class Area<Collection, Content, ContentObject> : EntityObject
     where Content : Entity
     where Collection : Collection<Content>
     where ContentObject : MonoBehaviour
@@ -62,9 +62,8 @@ public abstract class Area<Collection, Content, ContentObject> : MonoBehaviour
     }
 
 
-    
-
-
-    
+    public override Entity getEntity() {
+        return collection;
+    }
 }
  

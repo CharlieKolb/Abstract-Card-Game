@@ -2,7 +2,7 @@ using UnityEngine;
 using System;
 
 // Instance of a boardEntity, usually a creature or spell
-public abstract class BoardEntityObject : MonoBehaviour {
+public abstract class BoardEntityObject : EntityObject {
     Action triggerUse;
 
     public BoardEntity entity;
@@ -23,5 +23,10 @@ public abstract class BoardEntityObject : MonoBehaviour {
 
     private void OnMouseDown() {
         triggerUse();
+    }
+
+    public override Entity getEntity()
+    {
+        return entity;
     }
 }

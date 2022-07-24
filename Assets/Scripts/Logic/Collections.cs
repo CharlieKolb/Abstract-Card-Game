@@ -8,7 +8,7 @@ public class Element<Content> {
     public int index { get; set; }
 }
 
-public abstract class Collection<Content> where Content : Entity
+public abstract class Collection<Content> : Entity where Content : Entity
 {
     protected List<Content> content;
 
@@ -42,6 +42,43 @@ public abstract class Collection<Content> where Content : Entity
             };
         }
     }
+
+    public IEnumerable<Element<Content>> getAll() {
+        for(var i = 0; i < content.Count; ++i) {
+            var e = content[i];
+            yield return new Element<Content> {
+                value = e,
+                index = i,
+            };
+        }
+    }
+
+}
+
+public class CreatureCollectionIndex : Entity {
+    public int index;
+    public CreatureCollection collection;
+
+    public CreatureEntity at() {
+        return collection[index];
+    }
+
+    public override bool Equals(object obj)
+    {
+        if (obj == null || GetType() != obj.GetType())
+        {
+            return false;
+        }
+        var oth = (CreatureCollectionIndex)obj;
+        return index == oth.index && collection == oth.collection;
+    }
+
+    // override object.GetHashCode
+    public override int GetHashCode()
+    {
+        // TODO: write your implementation of GetHashCode() here
+        return index.GetHashCode() + collection.GetHashCode();
+    }
 }
 
 // BoardEntity Collections
@@ -62,7 +99,7 @@ public class CreatureCollection : BoardCollection<CreatureEntity> {
 }
 
 
-public abstract class BoardCollection<E> : Collection<E>
+public abstract class BoardCollection<E> : Collection<E>, ITargetable
     where E: BoardEntity
 {
     public BoardCollection(int width) : base(new List<E>(new E[width])) {
@@ -122,7 +159,7 @@ public abstract class BoardCollection<E> : Collection<E>
 }
 
 // Card Collections
-public abstract class CardCollection : Collection<Card>
+public abstract class CardCollection : Collection<Card>, ITargetable
 {
     public virtual bool hidden() { return true; }
 

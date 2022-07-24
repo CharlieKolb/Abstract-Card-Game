@@ -80,7 +80,7 @@ public class CreatureCardBlueprint : CardBlueprint {
 }
 
 
-public class Player : IPlayer
+public class Player
 {
     public Side side;
     public int lifepoints = 15;
@@ -92,7 +92,7 @@ public class Player : IPlayer
 
     public void inflictDamage(int value) {
         lifepoints -= value;
-        if (lifepoints <= 0) triggerLoss();
+        // if (lifepoints <= 0) triggerLoss();
     }
 
     public bool hasOptions()
@@ -107,7 +107,7 @@ public class Player : IPlayer
     {
         if (side.deck.isEmpty())
         {
-            triggerLoss();
+            // triggerLoss();
             return;
         }
         side.hand.add(side.deck.draw());
@@ -115,7 +115,7 @@ public class Player : IPlayer
 }
 
 public class GameStateData {
-    public Turn currentTurn;
+    public GamePhase currentPhase;
     public AbstractCardGameController activeController;
     public AbstractCardGameController passiveController;
 }
@@ -176,55 +176,6 @@ public class GS
         }
         gameStack.RemoveAt(gameStack.Count - 1);
         after();
-    }
-
-    private static List<IEnumerator<bool>> interactionQueue = new List<IEnumerator<bool>>();
-    
-    public static void PushInteraction(Interaction interaction) {
-        interactionQueue.Insert(0, interaction.execute());
-    }
-
-    static List<IEnumerator<EffectTarget>> targetQueue = new List<IEnumerator<EffectTarget>>();
-    public static bool isResolvingEffects => targetQueue.Count > 0;
-
-    // Return false if cancelled
-    public static EffectTarget ResolveEffectTargets(Effect effect, Player owner) {
-        var effectTargets = effect.resolveTargets();
-        if (!effectTargets.MoveNext()) return null;
-    
-        var cur = effectTargets.Current;
-        targetQueue.Insert(0, effectTargets);
-        return cur;
-    }
-
-    public static void CancelSelection() {
-        while (targetQueue.Count > 0) {
-            var front = targetQueue[0];
-            if (front.Current != null) front.Current.cancelled = true;
-            targetQueue.RemoveAt(0);
-        }
-        gameStateData.activeController.im.target = null;
-    }
-
-    public static void Tick() {
-        while (targetQueue.Count > 0) {
-            var front = targetQueue[0];
-            if (!front.MoveNext()) targetQueue.RemoveAt(0);
-            else {
-                gameStateData.activeController.im.target = front.Current;
-                break;
-            }
-        }
-
-        while (interactionQueue.Count > 0) {
-            IEnumerator<bool> front = interactionQueue[0];
-            if (!front.MoveNext() || front.Current == false) {
-                interactionQueue.RemoveAt(0);
-            }
-            else {
-                return;
-            }
-        }
     }
 }
 
@@ -287,53 +238,19 @@ public static class Phases
     }
 }
 
-public class TurnContext : ITurnContext {
-    Side side { get; set; }
-}
 
-public class Turn : ITurn<TurnContext>
+
+class MyCardGame
 {
-    public Turn(TurnContext tc) : base(Phases.drawPhase, tc)
-    {}
-
-    public override void startTurn()
+    Engine engine;
+    public MyCardGame(SideConfig s1, SideConfig s2)
     {
-        GS.gameStateData.currentTurn = this;
-        GS.ga.phaseActionHandler.Invoke(PhaseActionKey.ENTER, new PhasePayload(Phases.drawPhase), () => {
-            this.currentPhase = Phases.drawPhase;
-        });
-    }
-}
-
-class MyCardGame : TurnGame<Turn, TurnContext, AbstractCardGameController>
-{
-    public MyCardGame(AbstractCardGameController p1, DeckBlueprint d1, AbstractCardGameController p2, DeckBlueprint d2)
-    {
-        Player player1 = new Player(d1);
-        Player player2 = new Player(d2);
-        p1.Instantiate(player1);
-        p2.Instantiate(player2);
-        GS.gameStateData.activeController = p1;
-        GS.gameStateData.passiveController = p2;
-        for (int i = 0; i < 5; ++i) {
-            player1.drawCard();
-            player2.drawCard();
-        }
+        engine = new Engine(s1, s2);
     }
 
-    public override Turn makeTurn() {
-        return new Turn(new TurnContext());
-    }
-
-    public override IEnumerable<AbstractCardGameController> getNextPlayer()
-    {
-        while (true)
-        {
-            yield return GS.gameStateData.activeController;
-            var tmp = GS.gameStateData.activeController;
-            GS.gameStateData.activeController = GS.gameStateData.passiveController;
-            GS.gameStateData.passiveController = tmp;
-        }
+    public IEnumerator startGame()  {
+        engine.startGame();
+        yield break;
     }
 }
 
@@ -356,18 +273,6 @@ public class ACardGame : MonoBehaviour
     MyCardGame myCardGame;
 
 
-    IEnumerator RunGame()
-    {
-        var advancer = myCardGame.advance();
-        while (advancer.MoveNext())
-        {
-            yield return new WaitForEndOfFrame();
-        }
-
-        yield break;
-    }
-
-
     // Start is called before the first frame update
     void Start()
     {
@@ -388,15 +293,25 @@ public class ACardGame : MonoBehaviour
         var p2Controller = this.transform.Find("Player2").GetComponent<AbstractCardGameController>();
 
 
-        myCardGame = new MyCardGame(p1Controller, deckBp1, p2Controller, deckBp2);
+        Player player1 = new Player(deckBp1);
+        Player player2 = new Player(deckBp2);
+        p1Controller.Instantiate(player1);
+        p2Controller.Instantiate(player2);
+        GS.gameStateData.activeController = p1Controller;
+        GS.gameStateData.passiveController = p2Controller;
 
-        var c = StartCoroutine(RunGame());
+        var s1 = new SideConfig {
+            controller = p1Controller,
+            deck = deckBp1, 
+        };
 
-    }
+        var s2 = new SideConfig {
+            controller = p2Controller,
+            deck = deckBp2, 
+        };
 
+        myCardGame = new MyCardGame(s1, s2);
+        StartCoroutine(myCardGame.startGame());
 
-    void Update()
-    {
-        GS.Tick();
     }
 }

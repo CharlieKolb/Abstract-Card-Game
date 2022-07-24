@@ -22,8 +22,8 @@ static class EffectTargets {
         hasValidTargetCondition = (x) => new List<int>{ 0, 1, 2, 3, 4 }.Any(i => x.owner.side.creatures[i] == null),
         isValidTargetCondition = (x) => {
             if (x.owner != GS.gameStateData.activeController.player) return false;
-            return x.targetIndex.HasValue && x.owner.side.creatures[x.targetIndex.Value] == null;
+            return x.targetEntity is CreatureCollectionIndex && (x.targetEntity as CreatureCollectionIndex).at() == null;
         },
-        callback = (x) => cb(x.targetIndex.Value), 
+        callback = (x) => cb((x.targetEntity as CreatureCollectionIndex).index), 
     };
 }

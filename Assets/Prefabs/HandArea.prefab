@@ -12,7 +12,7 @@ GameObject:
   - component: {fileID: 7958226654679041005}
   m_Layer: 0
   m_Name: HandArea
-  m_TagString: Untagged
+  m_TagString: Targetable
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -43,4 +43,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ea1aa5905bf5cbe4c8e83869c73b1f7b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  onUse:
+    m_PersistentCalls:
+      m_Calls: []
   creatureCardPrefab: {fileID: 1052078826933964211, guid: a9a9644fbe762634e95a9e97b80909f8, type: 3}

@@ -1,31 +1,36 @@
 using UnityEngine;
+using System.Threading.Tasks;
 using System.Collections.Generic;
 using System.Linq;
 
 public abstract class Interaction {
     public bool executed = false;
 
-    public IEnumerator<bool> execute() {
-        var start = startExecute();
-        while (start.MoveNext()) {
-            yield return start.Current;
-            if (start.Current == false) {
-                yield break;
-            }
-        }
+    public async Task<GS> execute(GS gameState) {
+        var start = await startExecute(gameState);
 
-        doExecute();        
-        executed = true;
+        if (!start) return null;
+
+        return doExecute(gameState);        
     }
-    protected virtual IEnumerator<bool> startExecute() { yield return true; }
-    protected abstract void doExecute();
+    protected virtual Task<bool> startExecute(GS gameState) { return Task.FromResult(true); }
+    protected abstract GS doExecute(GS gameState);
 
 }
 
 public class PassPhaseInteraction : Interaction {
-    protected override void doExecute()
+    protected override GS doExecute(GS gameState)
     {
-        GS.gameStateData.currentTurn.advance();
+        var currentPhase = GS.gameStateData.currentPhase;
+        var nextPhase = currentPhase.nextPhase();
+        currentPhase.executeExit();
+        currentPhase = nextPhase == null ? Phases.drawPhase : nextPhase;
+
+        GS.gameStateData.currentPhase = currentPhase;
+        currentPhase.executeEntry();
+
+
+        return gameState;
     }
 
         // override object.Equals
@@ -55,7 +60,7 @@ public class DeclareAttackInteraction : Interaction {
         this.owner = owner;
     }
 
-    protected override void doExecute()
+    protected override GS doExecute(GS gameState)
     {
         var ownCreatureCollection = GS.gameStateData.activeController.player.side.creatures;
         var otherCreatureCollection = GS.gameStateData.passiveController.player.side.creatures;
@@ -71,6 +76,7 @@ public class DeclareAttackInteraction : Interaction {
             new DamageCreatureEffect(opponent.stats.attack, creature).apply(owner);
         }
         creature.hasAttacked = true;
+        return gameState;
     }
 
     // override object.Equals
@@ -92,35 +98,38 @@ public class DeclareAttackInteraction : Interaction {
 }
 
 public class PlayCardInteraction : Interaction {
-    public Card target;
+    public Card card;
     public Hand hand;
     public Player owner;
+    public Engine engine;
 
-    public PlayCardInteraction(Card target, Hand hand, Player owner) {
-        this.target = target;
+    public PlayCardInteraction(Card card, Hand hand, Player owner, Engine engine) {
+        this.card = card;
         this.hand = hand;
         this.owner = owner;
+        this.engine = engine;
     }
 
-    protected override IEnumerator<bool> startExecute() {
-        var results = target.effects.Select(x => GS.ResolveEffectTargets(x, owner)).ToList();
-
-        while (GS.isResolvingEffects) yield return true;
-
-        if (results.Any(x => x != null && x.cancelled)) {
-            results.ForEach(x => { if(x != null) x.reset(); });
-            yield return false;
+    protected async override Task<bool> startExecute(GS gameState) {
+        var newGS = gameState;
+        foreach (var effect in card.effects) {
+            newGS = await engine.resolveEffect(newGS, effect, owner);
+            if (newGS == null) return false;
         }
 
-        GS.ga.energyActionHandler.Invoke(EnergyActionKey.PAY, new EnergyPayload(target.cost, target), () => {
-            owner.side.energy = owner.side.energy.Without(target.cost);
-        });
+        // note: missing gameState transforms
+        return true;
     }
 
-    protected override void doExecute()
+    protected override GS doExecute(GS gameState)
     {
-        hand.remove(target);
-        target.use(owner);
+        GS.ga.energyActionHandler.Invoke(EnergyActionKey.PAY, new EnergyPayload(card.cost, card), () => {
+            owner.side.energy = owner.side.energy.Without(card.cost);
+            hand.remove(card);
+            card.use(owner);
+        });
+
+        return gameState;
     }
 
     // override object.Equals
@@ -131,13 +140,13 @@ public class PlayCardInteraction : Interaction {
             return false;
         }
         var oth = (PlayCardInteraction) obj;
-        return target == oth.target; // we ignore player as creatures are unique
+        return card == oth.card; // we ignore player as creatures are unique
     }
     
     // override object.GetHashCode
     public override int GetHashCode()
     {
-        return target.GetHashCode();
+        return card.GetHashCode();
     }
 
 }
@@ -153,11 +162,14 @@ public class SacCardInteraction : Interaction {
         this.owner = owner;
     }
 
-    protected override void doExecute()
+    protected override GS doExecute(GS gameState)
     {
-        hand.remove(target);
-        owner.side.maxEnergy = owner.side.maxEnergy.With(target.sac);
-        owner.side.energy = owner.side.energy.With(target.sac);
+        GS.ga.energyActionHandler.Invoke(EnergyActionKey.SAC, new EnergyPayload(target.cost, target), () => {
+            hand.remove(target);
+            owner.side.maxEnergy = owner.side.maxEnergy.With(target.sac);
+            owner.side.energy = owner.side.energy.With(target.sac);
+        });
+        return gameState;
     }
 
     // override object.Equals
@@ -178,66 +190,20 @@ public class SacCardInteraction : Interaction {
     }
 }
 
-// public class SelectTargetsInteraction : Interaction {
-//     Effect effect;
-//     List<(EffectTarget, GameObject, EffectContext)> targets = new List<(EffectTarget, GameObject, EffectContext)>();
-
-//     public SelectTargetsInteraction(Effect effect) {
-//         this.effect = effect;
-//     }
-
-//     protected override IEnumerator<bool> startExecute() {
-//         var effectTargets = effect.resolveTargets();
-//         if (!effectTargets.MoveNext()) yield break;
-//         while (effectTargets.MoveNext()) {
-            
-//             var target = effectTargets.Current;
-
-//             target.isValidTargetCondition.Invoke((x, new EffectTargetContext{ owner = GS.gameStateData.activeController.player }));
-//         }
-//     }
-
-    
-//     protected override void doExecute()
-//     {
-//         effect.callback((target, context));
-//         effect.called = true;
-//     }
-
-//     // override object.Equals
-//     public override bool Equals(object obj)
-//     {
-//         if (obj == null || GetType() != obj.GetType())
-//         {
-//             return false;
-//         }
-//         var oth = (SelectTargetsInteraction) obj;
-//         return effect == oth.effect;
-//     }
-    
-//     // override object.GetHashCode
-//     public override int GetHashCode()
-//     {
-//         return target.GetHashCode();
-//     }
-// }
-
-
-
-public class DoSelectTargetInteraction : Interaction {
-    EffectTarget effect;
+public class SelectTargetInteraction : Interaction {
     public EffectContext context;
+    EffectTarget target;
 
-    public DoSelectTargetInteraction(EffectTarget effect, EffectContext context) {
-        this.effect = effect;
+    public SelectTargetInteraction(EffectTarget target, EffectContext context) {
         this.context = context;
+        this.target = target;
     }
 
-    
-    protected override void doExecute()
+    protected override GS doExecute(GS gameState)
     {
-        effect.callback(context);
-        effect.called = true;
+        target.callback(context);
+        target.called = true;
+        return gameState;
     }
 
     // override object.Equals
@@ -247,28 +213,27 @@ public class DoSelectTargetInteraction : Interaction {
         {
             return false;
         }
-        var oth = (DoSelectTargetInteraction) obj;
-        return context == oth.context; // we ignore player as creatures are unique
+        var oth = (SelectTargetInteraction) obj;
+        return target == oth.target && context == oth.context;
     }
     
     // override object.GetHashCode
     public override int GetHashCode()
     {
-        return context.GetHashCode();
+        return target.GetHashCode() + context.GetHashCode();
     }
 }
 
 public class CancelSelectionInteraction : Interaction {
-    EffectTarget effect;
 
-    public CancelSelectionInteraction(EffectTarget effect) {
-        this.effect = effect;
+    public CancelSelectionInteraction() {
     }
 
     
-    protected override void doExecute()
+    protected override GS doExecute(GS gameState)
     {
-        GS.CancelSelection();
+        // todo?
+        return gameState;
     }
 
     // override object.Equals
@@ -279,12 +244,12 @@ public class CancelSelectionInteraction : Interaction {
             return false;
         }
         var oth = (CancelSelectionInteraction) obj;
-        return effect == oth.effect; // we ignore player as creatures are unique
+        return true;
     }
     
     // override object.GetHashCode
     public override int GetHashCode()
     {
-        return effect.GetHashCode();
+        return 1252134;
     }
 }

@@ -3,19 +3,13 @@ using System.Collections.Generic;
 using System;
 
 public class EffectContext {
-    public BoardEntity targetEntity;
-    public int? targetIndex;
+    public Entity targetEntity;
 
     public Effect effect;
     public Player owner;
 
-    public EffectContext WithTarget(BoardEntity target) {
+    public EffectContext WithEntity(Entity target) {
         this.targetEntity = target;
-        return this;
-    }
-
-    public EffectContext WithTargetIndex(int? index) {
-        this.targetIndex = index;
         return this;
     }
 
@@ -38,7 +32,6 @@ public class EffectContext {
 
         var oth = (EffectContext) obj;
         return this.targetEntity == oth.targetEntity &&
-                this.targetIndex == oth.targetIndex &&
                 this.effect == oth.effect &&
                 this.owner == oth.owner;
     }
@@ -47,7 +40,6 @@ public class EffectContext {
     {
         return (effect == null ? 5 : effect.GetHashCode()) +
             10 * owner.GetHashCode() +
-            20 * targetIndex.GetValueOrDefault(10) +
             (targetEntity == null ? 25 : targetEntity.GetHashCode());
     }
 }
@@ -69,16 +61,6 @@ public abstract class Effect : Entity
     }
 
     protected abstract void doApply(Player owner);
-
-    public IEnumerator<EffectTarget> resolveTargets() {
-        for (int idx = 0; idx < requests.Count; ++idx) {
-            var elem = requests[idx];
-            yield return elem;
-            while (!elem.called) {
-                yield return elem;
-            }
-        }
-    }
 
     public void apply(Player owner) {
         GS.ga.effectActionHandler.Invoke(EffectActionKey.TRIGGERED, new EffectPayload(this), () => doApply(owner));
@@ -145,7 +127,7 @@ public class DamagePlayerEffect : Effect, IDamageEffect {
         });
         if (target.lifepoints <= 0) {
             GS.ga.playerActionHandler.Invoke(PlayerActionKey.DIES, new PlayerPayload(target), () => {
-                target.triggerLoss();
+                // todo: handle loss
             });
         }
     }
@@ -183,7 +165,7 @@ public class DamageCreatureEffect : Effect {
                 CreatureEntityActionKey.DEATH,
                 new CreaturePayload(target),
                 () => {
-                    var x = getContext().WithEffect(this).WithOwner(owner).WithTarget(target);
+                    var x = getContext().WithEffect(this).WithOwner(owner).WithEntity(target);
                     // Just clear it on both rather than looking, should probably have a function for this
                     GS.gameStateData.activeController.player.side.creatures.clearEntity(target, x);
                     GS.gameStateData.passiveController.player.side.creatures.clearEntity(target, x);

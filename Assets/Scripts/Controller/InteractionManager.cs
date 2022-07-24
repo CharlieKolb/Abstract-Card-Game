@@ -6,86 +6,19 @@ using UnityEngine.EventSystems;
 
 using System.Linq;
 
-struct InteractionMapperResult {
-    Action customCallback;
-}
-
-interface IInteractionMapper {
-    InteractionMapperResult handleInteraction(Interaction interaction, Action triggerCallback);
-}
-
 public class InteractionManager : MonoBehaviour
 {
-    public EffectTarget target;
-    public Dictionary<EffectContext, GameObject> goMapper = new Dictionary<EffectContext, GameObject>();
-
-    // Do not consume more than one interaction per call
-    public List<Interaction> getInteractions() {
-        var res = new List<Interaction>();
-
-        if (target != null) {
-            var targetable = GameObject.FindGameObjectsWithTag("Targetable")
-                .Select(go => {
-                    var ec = new EffectContext();
-                    ec = ec.WithOwner(controller.player);
-
-                    var cf = go.GetComponent<CreatureField>();
-                    if (cf != null) {
-                        ec = ec.WithTargetIndex(cf.index);
-                    }
-
-                    goMapper[ec] = go;
-
-                    return ec;
-                })
-                .Where(target.isValidTargetCondition.Invoke)
-                .Select(ec => new DoSelectTargetInteraction(target, ec))
-                .ToList<Interaction>();
-
-            return targetable.Concat(new List<Interaction>{ new CancelSelectionInteraction(target) }).ToList();
-        }
-
-        if (controller == GS.gameStateData.activeController) {
-            res.Add(new PassPhaseInteraction());
-        }
-
-        return res
-                .Concat(getInteractions(side.hand))
-                .Concat(getInteractions(side.creatures)).ToList();
-    }
-
-    private List<Interaction> getInteractions(Hand hand) {
-        var all = hand.getExisting();
-        var playable = all
-            .Where(c => c.value.canUseFromHand(side.player))
-            .Select(x => new PlayCardInteraction(x.value, hand, side.player))
-            .ToList<Interaction>();
-
-        var saccable = all.Select(x => new SacCardInteraction(x.value, hand, side.player)).ToList<Interaction>();
-
-        return playable.Concat(saccable).ToList();
-    }
-
-    private List<Interaction> getInteractions(CreatureCollection creatures) {
-        if (GS.gameStateData.activeController.player != side.player || GS.gameStateData.currentTurn.currentPhase != Phases.battlePhase) {
-            return new List<Interaction>();
-        }
-
-        return creatures.getExisting()
-            .Where(c => !c.value.hasAttacked)
-            .Select(x => new DeclareAttackInteraction(x.value, side.player))
-            .ToList<Interaction>();
-    }
-
     AbstractCardGameController controller;
     Side side => controller.player.side;
     GameObject passTurnButton;
+
+    // stack to keep track of which is the active listener
+    int stack = 0;
 
     // Start is called before the first frame update
     void Start()
     {
         controller = GetComponentInParent<AbstractCardGameController>();   
-        GS.ga.phaseActionHandler.after.on(PhaseActionKey.ENTER, (_) => flushInteractions());
 
         passTurnButton = transform.Find("PassTurnButton").gameObject;
     }
@@ -101,50 +34,40 @@ public class InteractionManager : MonoBehaviour
         }
     }
     
-    Dictionary<Interaction, Action> currentInteractions = new Dictionary<Interaction, Action>(new Comparer());
-
-    void flushInteractions() {
-        foreach (var act in currentInteractions.Values) {
-            act();
-        }
-        currentInteractions.Clear();
-        goMapper.Clear();
-        updateInteractions();
-    }
-
-    void updateInteractions() {
-        var interactions = getInteractions();
-        var seenKeys = new HashSet<Interaction>();
+    Dictionary<int, List<(EventTrigger.Entry, List<EventTrigger.Entry>)>> eventDict = new Dictionary<int, List<(EventTrigger.Entry, List<EventTrigger.Entry>)>>();
+    public void updateInteractions(List<Interaction> interactions, Action<Interaction> callback) {
+        int stackId = ++stack;
+        eventDict[stackId] = new List<(EventTrigger.Entry, List<EventTrigger.Entry>)>();
+        
         foreach (var iact in interactions) {
-            if (currentInteractions.ContainsKey(iact)) {
-                seenKeys.Add(iact);
-                continue;
-            }
-            currentInteractions.Add(iact, SpawnInteraction(iact));
-            seenKeys.Add(iact);
-        }
-
-        var toBeRemoved = new HashSet<Interaction>();
-        foreach (var key in currentInteractions.Keys) {
-            if (!seenKeys.Contains(key)) {
-                toBeRemoved.Add(key);
-            }
-        }
-
-        foreach (var key in toBeRemoved) {
-            var act = currentInteractions[key];
-            currentInteractions.Remove(key);
-            act();
+            SpawnInteraction(iact, callback, stackId);
         }
     }
 
-    Action SpawnInteraction(Interaction interaction) {
+    GameObject resolveObject(EffectContext ec) {
+        var targetable = GameObject.FindGameObjectsWithTag("Targetable")
+            .Select(x => (x, x.GetComponent<EntityObject>()))
+            .Where(x => x.Item2 != null)
+            .Where(x => x.Item2.getEntity().Equals(ec.targetEntity))
+            .ToList();
+
+        if (targetable.Count < 1) {
+            throw new Exception("Did not find match");
+        }
+
+        if (targetable.Count > 1) {
+            throw new Exception("Found multiple matches for EffectContext");
+        }
+
+        return targetable[0].Item1;
+    }
+
+    void SpawnInteraction(Interaction interaction, Action<Interaction> callback, int id) {
         GameObject triggerObj = null;
         PointerEventData.InputButton button = PointerEventData.InputButton.Left;
-        Action customCallback = () => {};
         if (interaction is PlayCardInteraction) {
             var pci = (PlayCardInteraction) interaction;
-            triggerObj = controller.handArea.getObject(pci.target).gameObject;
+            triggerObj = controller.handArea.getObject(pci.card).gameObject;
         }
         else if (interaction is SacCardInteraction) {
             var pci = (SacCardInteraction) interaction;
@@ -160,41 +83,53 @@ public class InteractionManager : MonoBehaviour
             var dai = (DeclareAttackInteraction) interaction;
             triggerObj = controller.creatureArea.getObject(dai.creature).gameObject;
         }
-        else if (interaction is DoSelectTargetInteraction) {
-            var sti = (DoSelectTargetInteraction) interaction;
-            triggerObj = goMapper[sti.context];
-            customCallback = () => {
-                target = null;
-            };
+        else if (interaction is SelectTargetInteraction) {
+            var sti = (SelectTargetInteraction) interaction;
+            triggerObj = resolveObject(sti.context);
         }
         else if (interaction is CancelSelectionInteraction) {
             var csi = (CancelSelectionInteraction) interaction;
             triggerObj = passTurnButton;
+            // pass
         }
-
-
-
 
         var entry = new EventTrigger.Entry {
             eventID = EventTriggerType.PointerDown,
         };
 
+
+        var triggers = triggerObj.GetComponent<EventTrigger>().triggers;
         entry.callback.AddListener((ed) => {
-            if (((PointerEventData) ed).button == button) {
-                flushInteractions();
-                GS.PushInteraction(interaction);
+            lock(callback) {
+                if (ed.used) return;
+                if (id != stack) {
+                    Debug.Log("denied due to stack! mine: " + id + ", current: " + stack);
+                    return; // swallow events for newer interactions so we don't resolve on their triggers
+                }
+                if (((PointerEventData) ed).button == button) {
+                    ed.Use();
+                    entry.callback.RemoveAllListeners();
+                    Debug.Log(triggers.Count);
+                    eventDict[id].ForEach(x => x.Item2.Remove(x.Item1));
+                    Debug.Log(triggers.Count);
+                    eventDict.Remove(id);
+
+                    --stack;
+
+                    Debug.Log("mine: " + id + ", current: " + stack);
+                    callback(interaction);
+                }
             }
         });
-        triggerObj.GetComponent<EventTrigger>().triggers.Add(entry);
-        return () => {
-            customCallback();
-            entry.callback.RemoveAllListeners();
-        };
+
+        if (!triggers.Contains(entry)) {
+            triggers.Add(entry);
+            eventDict[id].Add((entry, triggers));
+        }
     }
 
     // Update is called once per frame
     void Update()
     {
-        updateInteractions();
     }
 }

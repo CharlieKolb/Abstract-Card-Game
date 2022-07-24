@@ -23,7 +23,7 @@ public abstract class Card : Entity {
 
     public bool canUseFromHand(Player owner) {
         if (GS.gameStateData.activeController.player != owner.side.player ||
-        !new List<GamePhase>{ Phases.mainPhase1, Phases.mainPhase2 }.Contains(GS.gameStateData.currentTurn.currentPhase)) {
+        !new List<GamePhase>{ Phases.mainPhase1, Phases.mainPhase2 }.Contains(GS.gameStateData.currentPhase)) {
             return false;
         }
         return cost.canBePaid(owner.side.energy) && cardBP.effects.TrueForAll(x => x.canApply(owner));

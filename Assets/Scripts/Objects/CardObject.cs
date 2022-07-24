@@ -3,7 +3,7 @@ using System;
 using CardGameInterface;
 
 // Instance of a card, usually in hand or preview
-public abstract class CardObject : MonoBehaviour {
+public abstract class CardObject : EntityObject {
     Action triggerUse;
 
     public Card card; // effects and name
@@ -28,5 +28,10 @@ public abstract class CardObject : MonoBehaviour {
 
     private void OnMouseDown() {
         triggerUse();
+    }
+
+    public override Entity getEntity()
+    {
+        return card;
     }
 }

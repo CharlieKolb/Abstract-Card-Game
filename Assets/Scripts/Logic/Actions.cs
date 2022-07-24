@@ -113,6 +113,7 @@ public class GraveyardActionKey : CardCollectionActionKey  {
 
 public class EnergyActionKey : IKeyBase {
     public static string PAY = "PAY";
+    public static string SAC = "SAC";
 }
 
 public class PlayerPayload {

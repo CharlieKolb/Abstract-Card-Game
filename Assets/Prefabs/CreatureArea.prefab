@@ -12,7 +12,7 @@ GameObject:
   - component: {fileID: 2269921456181297169}
   m_Layer: 0
   m_Name: CreatureArea
-  m_TagString: Untagged
+  m_TagString: Targetable
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -43,7 +43,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b75f24e6e5a36c94898a95f066aa2828, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  controller: {fileID: 0}
   onUse:
     m_PersistentCalls:
       m_Calls: []
