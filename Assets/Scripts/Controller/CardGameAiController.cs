@@ -14,12 +14,13 @@ public class CardGameAiController : AbstractCardGameController {
         });
     }
 
-    protected override Task<Interaction> doSelectInteraction(List<Interaction> interactions) {
+    protected override async Task<Interaction> doSelectInteraction(List<Interaction> interactions) {
         if (saccedThisTurn) interactions = interactions.Where(x => !(x is SacCardInteraction)).ToList();
         var selected = interactions[Random.Range(0, interactions.Count)];
         if (selected is SacCardInteraction) saccedThisTurn = true;
 
+        await Task.Delay(500);
 
-        return Task.FromResult(selected);
+        return selected;
     }
 }
