@@ -69,6 +69,12 @@ public class GameActionHandler<ArgType>
     public ActionHandler<string, ArgType> before = new ActionHandler<string, ArgType>();
     public ActionHandler<string, ArgType> after = new ActionHandler<string, ArgType>();
 
+    Engine engine;
+
+    public GameActionHandler(Engine engine) {
+        this.engine = engine;
+    }
+
     public void Invoke(string key, ArgType argType, Action action)
     {
         GS.PushAction(

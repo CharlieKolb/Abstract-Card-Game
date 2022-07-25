@@ -122,29 +122,45 @@ public class GameStateData {
 
 
 public class GameActions {
-    public GameActionHandler<PlayerPayload> playerActionHandler = new GameActionHandler<PlayerPayload>();
+    public GameActionHandler<PlayerPayload> playerActionHandler;
     
-    public GameActionHandler<CardActionPayload> cardActionHandler = new GameActionHandler<CardActionPayload>();
+    public GameActionHandler<CardActionPayload> cardActionHandler;
 
-    public GameActionHandler<CardCollectionPayload> cardCollectionActionHandler = new GameActionHandler<CardCollectionPayload>();
+    public GameActionHandler<CardCollectionPayload> cardCollectionActionHandler;
     // into
-    public GameActionHandler<HandPayload> handActionHandler = new GameActionHandler<HandPayload>();
-    public GameActionHandler<DeckPayload> deckActionHandler = new GameActionHandler<DeckPayload>();
-    public GameActionHandler<GraveyardPayload> graveyardActionHandler = new GameActionHandler<GraveyardPayload>();
+    public GameActionHandler<HandPayload> handActionHandler;
+    public GameActionHandler<DeckPayload> deckActionHandler;
+    public GameActionHandler<GraveyardPayload> graveyardActionHandler;
     
     
-    public GameActionHandler<CreatureAreaPayload> creatureAreaActionHandler = new GameActionHandler<CreatureAreaPayload>();
+    public GameActionHandler<CreatureAreaPayload> creatureAreaActionHandler;
 
-    public GameActionHandler<EntityPayload> entityActionHandler = new GameActionHandler<EntityPayload>();
-    public GameActionHandler<BoardEntityPayload> boardActionHandler = new GameActionHandler<BoardEntityPayload>();
-    public GameActionHandler<CreaturePayload> creatureActionHandler = new GameActionHandler<CreaturePayload>();
+    public GameActionHandler<EntityPayload> entityActionHandler;
+    public GameActionHandler<BoardEntityPayload> boardActionHandler;
+    public GameActionHandler<CreaturePayload> creatureActionHandler;
 
 
-    public GameActionHandler<EnergyPayload> energyActionHandler = new GameActionHandler<EnergyPayload>();
+    public GameActionHandler<EnergyPayload> energyActionHandler;
 
-    public GameActionHandler<PhasePayload> phaseActionHandler = new GameActionHandler<PhasePayload>();
+    public GameActionHandler<PhasePayload> phaseActionHandler;
 
-    public GameActionHandler<EffectPayload> effectActionHandler = new GameActionHandler<EffectPayload>();
+    public GameActionHandler<EffectPayload> effectActionHandler;
+
+    public GameActions(Engine engine) {
+        playerActionHandler = new GameActionHandler<PlayerPayload>(engine);
+        cardActionHandler = new GameActionHandler<CardActionPayload>(engine);
+        cardCollectionActionHandler = new GameActionHandler<CardCollectionPayload>(engine);
+        handActionHandler = new GameActionHandler<HandPayload>(engine);
+        deckActionHandler = new GameActionHandler<DeckPayload>(engine);
+        graveyardActionHandler = new GameActionHandler<GraveyardPayload>(engine);
+        creatureAreaActionHandler = new GameActionHandler<CreatureAreaPayload>(engine);
+        entityActionHandler = new GameActionHandler<EntityPayload>(engine);
+        boardActionHandler = new GameActionHandler<BoardEntityPayload>(engine);
+        creatureActionHandler = new GameActionHandler<CreaturePayload>(engine);
+        energyActionHandler = new GameActionHandler<EnergyPayload>(engine);
+        phaseActionHandler = new GameActionHandler<PhasePayload>(engine);
+        effectActionHandler = new GameActionHandler<EffectPayload>(engine);
+    }
 
 
 }
@@ -154,7 +170,7 @@ public class GS
 {
     // to be initialized
     public static GameStateData gameStateData = new GameStateData();
-    public static GameActions ga = new GameActions();
+    public static GameActions ga;
 
 
     // end
@@ -274,7 +290,7 @@ public class ACardGame : MonoBehaviour
 
 
     // Start is called before the first frame update
-    void Start()
+    void Awake()
     {
         var maker = new CardBPMaker(Instantiate, cardPrefab);
 
@@ -293,13 +309,6 @@ public class ACardGame : MonoBehaviour
         var p2Controller = this.transform.Find("Player2").GetComponent<AbstractCardGameController>();
 
 
-        Player player1 = new Player(deckBp1);
-        Player player2 = new Player(deckBp2);
-        p1Controller.Instantiate(player1);
-        p2Controller.Instantiate(player2);
-        GS.gameStateData.activeController = p1Controller;
-        GS.gameStateData.passiveController = p2Controller;
-
         var s1 = new SideConfig {
             controller = p1Controller,
             deck = deckBp1, 
@@ -310,8 +319,14 @@ public class ACardGame : MonoBehaviour
             deck = deckBp2, 
         };
 
-        myCardGame = new MyCardGame(s1, s2);
-        StartCoroutine(myCardGame.startGame());
+        GS.gameStateData.activeController = p1Controller;
+        GS.gameStateData.passiveController = p2Controller;
 
+
+        myCardGame = new MyCardGame(s1, s2);
+    }
+
+    void Start() {
+        StartCoroutine(myCardGame.startGame());
     }
 }

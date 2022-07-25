@@ -2,8 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-using UnityEngine;
-
 public class EffectTarget {
     public Predicate<EffectContext> hasValidTargetCondition { set; get; }
     public Predicate<EffectContext> isValidTargetCondition;

@@ -15,6 +15,10 @@ public struct SideConfig {
     public DeckBlueprint deck;
     public AbstractCardGameController controller;
 
+    public void Instantiate() {
+        controller.Instantiate(new Player(deck));
+    }
+
     public override bool Equals(object obj)
     {
         if (obj == null || GetType() != obj.GetType())
@@ -47,28 +51,37 @@ public class Engine {
     List<EffectTarget> resolveTargetStack;
 
     public Engine(SideConfig s1, SideConfig s2) {
+        this.s1 = s1;
+        this.s2 = s2;
+        GS.ga = new GameActions(this);
+    }
+
+    public async void startGame() {
+        var gs = new GS();
+
+        s1.Instantiate();
+        s2.Instantiate();
+
         GS.gameStateData.currentPhase = Phases.drawPhase;
         GS.gameStateData.currentPhase.executeEntry();
 
         GS.ga.phaseActionHandler.after.on(PhaseActionKey.EXIT, (p) => {
-            if (p.phase == Phases.endPhase) {
+            if (p.phase == Phases.endPhase)
+            {
                 GS.gameStateData.passiveController = active.controller;
                 active = (s1.Equals(active)) ? s2 : s1;
                 GS.gameStateData.activeController = active.controller;
             }
         });
-        this.s1 = s1;
-        this.s2 = s2;
 
-        for (int i = 0; i < 5; ++i) {
+        for (int i = 0; i < 5; ++i)
+        {
             s1.controller.player.drawCard();
             s2.controller.player.drawCard();
         }
         active = s1;
-    }
 
-    public async void startGame() {
-        var gs = new GS();
+
         while (true) {
             var interaction = await active.controller.selectInteraction(getNormalInteractions(gs));
             var newGS = await interaction.execute(gs);
