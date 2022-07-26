@@ -53,24 +53,24 @@ public class Engine {
     public Engine(SideConfig s1, SideConfig s2) {
         this.s1 = s1;
         this.s2 = s2;
-        GS.ga = new GameActions(this);
+
+        GS.ga_global = new GameActions(this);
+        gameState = new GS(this);
     }
 
     public async void startGame() {
-        var gs = new GS();
-
         s1.Instantiate();
         s2.Instantiate();
 
-        GS.gameStateData.currentPhase = Phases.drawPhase;
-        GS.gameStateData.currentPhase.executeEntry();
+        GS.gameStateData_global.currentPhase = Phases.drawPhase;
+        GS.gameStateData_global.currentPhase.executeEntry();
 
-        GS.ga.phaseActionHandler.after.on(PhaseActionKey.EXIT, (p) => {
+        GS.ga_global.phaseActionHandler.after.on(PhaseActionKey.EXIT, (p) => {
             if (p.phase == Phases.endPhase)
             {
-                GS.gameStateData.passiveController = active.controller;
+                GS.gameStateData_global.passiveController = active.controller;
                 active = (s1.Equals(active)) ? s2 : s1;
-                GS.gameStateData.activeController = active.controller;
+                GS.gameStateData_global.activeController = active.controller;
             }
         });
 
@@ -83,9 +83,9 @@ public class Engine {
 
 
         while (true) {
-            var interaction = await active.controller.selectInteraction(getNormalInteractions(gs));
-            var newGS = await interaction.execute(gs);
-            if (newGS != null) gs = newGS;
+            var interaction = await active.controller.selectInteraction(getNormalInteractions(gameState));
+            var newGS = await interaction.execute(gameState);
+            if (newGS != null) gameState = newGS;
         }
     }
 
@@ -120,7 +120,7 @@ public class Engine {
     public List<Interaction> getInteractions(SideConfig sideConfig) {
         var res = new List<Interaction>();
 
-        if (sideConfig.controller != GS.gameStateData.activeController) {
+        if (sideConfig.controller != GS.gameStateData_global.activeController) {
             return res;
         }
 
@@ -148,7 +148,7 @@ public class Engine {
     }
 
     private List<Interaction> getInteractions(Player owner, CreatureCollection creatures) {
-        if (GS.gameStateData.activeController.player != owner || GS.gameStateData.currentPhase != Phases.battlePhase) {
+        if (GS.gameStateData_global.activeController.player != owner || GS.gameStateData_global.currentPhase != Phases.battlePhase) {
             return new List<Interaction>();
         }
 

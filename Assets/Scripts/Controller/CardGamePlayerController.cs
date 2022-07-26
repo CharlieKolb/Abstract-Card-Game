@@ -13,15 +13,7 @@ public class CardGamePlayerController : AbstractCardGameController {
         
         var t = new TaskCompletionSource<Interaction>();
         
-        bool b = false;
-        im.updateInteractions(interactions, (i) => {
-            if (b) Debug.Log(i);
-            else {
-                // b = true;
-                t.SetResult(i);
-            }
-            
-        });
+        im.updateInteractions(interactions, (i) => t.SetResult(i));
 
         return await t.Task;
     }

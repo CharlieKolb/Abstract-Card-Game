@@ -36,7 +36,9 @@ public class InteractionManager : MonoBehaviour
 
     List<Action> toBeCalled = new List<Action>();
 
-    List<List<Action>> activeTriggerCallbacks = new List<List<Action>>();    
+    List<List<Action>> activeTriggerCallbacks = new List<List<Action>>();  
+
+
     public void updateInteractions(List<Interaction> interactions, Action<Interaction> callback) {
         while (stack < activeTriggerCallbacks.Count) {
             toBeCalled.AddRange(activeTriggerCallbacks[activeTriggerCallbacks.Count - 1]);
@@ -107,11 +109,9 @@ public class InteractionManager : MonoBehaviour
         };
 
 
-        var triggers = triggerObj.GetComponent<EventTrigger>().triggers;
         entry.callback.AddListener((ed) => {
             if (((PointerEventData) ed).button == button) {
                 if (id != stack) {
-                    Debug.Log("denied due to stack! mine: " + id + ", current: " + stack);
                     return; // swallow events for newer interactions so we don't resolve on their triggers
                 }
 
@@ -122,6 +122,7 @@ public class InteractionManager : MonoBehaviour
             }
         });
 
+        var triggers = triggerObj.GetComponent<EventTrigger>().triggers;
         triggers.Add(entry);
         return () => {
             triggers.Remove(entry);

@@ -47,7 +47,7 @@ public class CreatureArea : Area<CreatureCollection, CreatureEntity, CreatureObj
     }
 
     protected override void initCollection() {
-        GS.ga.creatureAreaActionHandler.after.on(CreatureAreaActionKey.COUNT_CHANGED, (x) =>  { 
+        GS.ga_global.creatureAreaActionHandler.after.on(CreatureAreaActionKey.COUNT_CHANGED, (x) =>  { 
             if(x.collection == collection) doRefresh(x.diff);
         });
         for (int i = 0; i < fields.Length; ++i) {

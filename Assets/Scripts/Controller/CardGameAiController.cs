@@ -7,8 +7,8 @@ public class CardGameAiController : AbstractCardGameController {
     private bool saccedThisTurn;
 
     protected override void doInstantiate() {
-        GS.ga.phaseActionHandler.after.on(PhaseActionKey.ENTER, (x) => {
-            if (x.phase == Phases.drawPhase && GS.gameStateData.activeController == this) {
+        GS.ga_global.phaseActionHandler.after.on(PhaseActionKey.ENTER, (x) => {
+            if (x.phase == Phases.drawPhase && GS.gameStateData_global.activeController == this) {
                 saccedThisTurn = false;
             }
         });

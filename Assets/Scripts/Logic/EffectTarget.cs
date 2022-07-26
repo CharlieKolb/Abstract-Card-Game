@@ -19,7 +19,7 @@ static class EffectTargets {
     public static Func<Action<int>, EffectTarget> targetEmptyFriendlyField = (cb) => new EffectTarget {
         hasValidTargetCondition = (x) => new List<int>{ 0, 1, 2, 3, 4 }.Any(i => x.owner.side.creatures[i] == null),
         isValidTargetCondition = (x) => {
-            if (x.owner != GS.gameStateData.activeController.player) return false;
+            if (x.owner != GS.gameStateData_global.activeController.player) return false;
             return x.targetEntity is CreatureCollectionIndex && (x.targetEntity as CreatureCollectionIndex).at() == null;
         },
         callback = (x) => cb((x.targetEntity as CreatureCollectionIndex).index), 

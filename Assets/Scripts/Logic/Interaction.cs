@@ -21,12 +21,12 @@ public abstract class Interaction {
 public class PassPhaseInteraction : Interaction {
     protected override GS doExecute(GS gameState)
     {
-        var currentPhase = GS.gameStateData.currentPhase;
+        var currentPhase = GS.gameStateData_global.currentPhase;
         var nextPhase = currentPhase.nextPhase();
         currentPhase.executeExit();
         currentPhase = nextPhase == null ? Phases.drawPhase : nextPhase;
 
-        GS.gameStateData.currentPhase = currentPhase;
+        GS.gameStateData_global.currentPhase = currentPhase;
         currentPhase.executeEntry();
 
 
@@ -62,14 +62,14 @@ public class DeclareAttackInteraction : Interaction {
 
     protected override GS doExecute(GS gameState)
     {
-        var ownCreatureCollection = GS.gameStateData.activeController.player.side.creatures;
-        var otherCreatureCollection = GS.gameStateData.passiveController.player.side.creatures;
+        var ownCreatureCollection = GS.gameStateData_global.activeController.player.side.creatures;
+        var otherCreatureCollection = GS.gameStateData_global.passiveController.player.side.creatures;
 
         var idx = ownCreatureCollection.find(creature);
         var opponent = otherCreatureCollection[idx];
         if (opponent == null) {
             // direct attack
-            new DamagePlayerEffect(creature.stats.attack, GS.gameStateData.passiveController.player).apply(owner);
+            new DamagePlayerEffect(creature.stats.attack, GS.gameStateData_global.passiveController.player).apply(owner);
         }
         else {
             new DamageCreatureEffect(creature.stats.attack, opponent).apply(owner);
@@ -123,7 +123,7 @@ public class PlayCardInteraction : Interaction {
 
     protected override GS doExecute(GS gameState)
     {
-        GS.ga.energyActionHandler.Invoke(EnergyActionKey.PAY, new EnergyPayload(card.cost, card), () => {
+        GS.ga_global.energyActionHandler.Invoke(EnergyActionKey.PAY, new EnergyPayload(card.cost, card), () => {
             owner.side.energy = owner.side.energy.Without(card.cost);
             hand.remove(card);
             card.use(owner);
@@ -164,7 +164,7 @@ public class SacCardInteraction : Interaction {
 
     protected override GS doExecute(GS gameState)
     {
-        GS.ga.energyActionHandler.Invoke(EnergyActionKey.SAC, new EnergyPayload(target.cost, target), () => {
+        GS.ga_global.energyActionHandler.Invoke(EnergyActionKey.SAC, new EnergyPayload(target.cost, target), () => {
             hand.remove(target);
             owner.side.maxEnergy = owner.side.maxEnergy.With(target.sac);
             owner.side.energy = owner.side.energy.With(target.sac);

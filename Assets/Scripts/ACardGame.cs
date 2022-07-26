@@ -169,8 +169,15 @@ public class GameActions {
 public class GS
 {
     // to be initialized
-    public static GameStateData gameStateData = new GameStateData();
-    public static GameActions ga;
+    public static GameStateData gameStateData_global = new GameStateData();
+    public static GameActions ga_global;
+
+    public GameStateData gameStateData => gameStateData_global;
+    public GameActions ga => ga_global;
+
+    public GS(Engine engine) {
+        // ga = new GameActions(engine);
+    }
 
 
     // end
@@ -215,10 +222,10 @@ public class GamePhase
     }
 
     public void executeEntry() {
-        GS.ga.phaseActionHandler.Invoke(PhaseActionKey.ENTER, new PhasePayload(this), () => _onEntry.Invoke(this));
+        GS.ga_global.phaseActionHandler.Invoke(PhaseActionKey.ENTER, new PhasePayload(this), () => _onEntry.Invoke(this));
     }
     public void executeExit() {
-        GS.ga.phaseActionHandler.Invoke(PhaseActionKey.EXIT, new PhasePayload(this), () => _onExit.Invoke(this));
+        GS.ga_global.phaseActionHandler.Invoke(PhaseActionKey.EXIT, new PhasePayload(this), () => _onExit.Invoke(this));
     }
     public bool hasOptions() { return _hasOptions.Invoke(this); }
     public GamePhase nextPhase() { return _nextPhase.Invoke(); }
@@ -228,7 +235,7 @@ public class PhaseUtil
 {
     public static void drawCard(GamePhase p)
     {
-        GS.gameStateData.activeController.player.drawCard();
+        GS.gameStateData_global.activeController.player.drawCard();
     }
 }
 
@@ -319,8 +326,8 @@ public class ACardGame : MonoBehaviour
             deck = deckBp2, 
         };
 
-        GS.gameStateData.activeController = p1Controller;
-        GS.gameStateData.passiveController = p2Controller;
+        GS.gameStateData_global.activeController = p1Controller;
+        GS.gameStateData_global.passiveController = p2Controller;
 
 
         myCardGame = new MyCardGame(s1, s2);

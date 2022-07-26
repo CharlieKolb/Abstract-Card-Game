@@ -2,6 +2,8 @@ using System.Linq;
 using System.Collections.Generic;
 using System;
 
+using Debug = UnityEngine.Debug;
+
 public class EffectContext {
     public Entity targetEntity;
 
@@ -63,7 +65,7 @@ public abstract class Effect : Entity
     protected abstract void doApply(Player owner);
 
     public void apply(Player owner) {
-        GS.ga.effectActionHandler.Invoke(EffectActionKey.TRIGGERED, new EffectPayload(this), () => doApply(owner));
+        GS.ga_global.effectActionHandler.Invoke(EffectActionKey.TRIGGERED, new EffectPayload(this), () => doApply(owner));
     }
 
     public abstract Effect Clone();
@@ -122,11 +124,11 @@ public class DamagePlayerEffect : Effect, IDamageEffect {
     protected override void doApply(Player owner)
     {
         var board = owner.side.creatures;
-        GS.ga.playerActionHandler.Invoke(PlayerActionKey.DAMAGED, new PlayerPayload(target), () => {
+        GS.ga_global.playerActionHandler.Invoke(PlayerActionKey.DAMAGED, new PlayerPayload(target), () => {
             target.lifepoints -= amount;
         });
         if (target.lifepoints <= 0) {
-            GS.ga.playerActionHandler.Invoke(PlayerActionKey.DIES, new PlayerPayload(target), () => {
+            GS.ga_global.playerActionHandler.Invoke(PlayerActionKey.DIES, new PlayerPayload(target), () => {
                 // todo: handle loss
             });
         }
@@ -156,19 +158,19 @@ public class DamageCreatureEffect : Effect {
 
     protected override void doApply(Player owner)
     {
-        GS.ga.creatureActionHandler.Invoke(CreatureEntityActionKey.DAMAGED, new CreaturePayload(target), () => {
+        GS.ga_global.creatureActionHandler.Invoke(CreatureEntityActionKey.DAMAGED, new CreaturePayload(target), () => {
             target.stats.health -= amount;
         });
 
         if (target.stats.health <= 0) {
-            GS.ga.creatureActionHandler.Invoke(
+            GS.ga_global.creatureActionHandler.Invoke(
                 CreatureEntityActionKey.DEATH,
                 new CreaturePayload(target),
                 () => {
                     var x = getContext().WithEffect(this).WithOwner(owner).WithEntity(target);
                     // Just clear it on both rather than looking, should probably have a function for this
-                    GS.gameStateData.activeController.player.side.creatures.clearEntity(target, x);
-                    GS.gameStateData.passiveController.player.side.creatures.clearEntity(target, x);
+                    GS.gameStateData_global.activeController.player.side.creatures.clearEntity(target, x);
+                    GS.gameStateData_global.passiveController.player.side.creatures.clearEntity(target, x);
                 }
             );
         }
