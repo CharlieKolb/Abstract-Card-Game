@@ -8,6 +8,7 @@ public class Side
     public Energy energy;
     public Energy maxEnergy;
 
+    // TODO(GlobalConfig) - This is a good example of something that should be part of the game config. The side itself shouldn't care about resetting its own energy, a rule in the gameConfig should do that
     public Side(DeckBlueprint deckBlueprint, Player player) {
         deck = Deck.FromBlueprint(deckBlueprint);
         this.player = player;
@@ -23,15 +24,5 @@ public class Side
                 energy = new Energy(maxEnergy);
             }
         });
-    }
-
-    public bool hasOptions()
-    {
-        foreach (var e in hand.getExisting())
-        {
-            if (e.value.canUseFromHand(player)) return true;
-        }
-
-        return false;
     }
 }

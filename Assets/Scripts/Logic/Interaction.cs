@@ -21,13 +21,13 @@ public abstract class Interaction {
 public class PassPhaseInteraction : Interaction {
     protected override GS doExecute(GS gameState)
     {
-        var currentPhase = GS.gameStateData_global.currentPhase;
+        var currentPhase = gameState.gameStateData.currentPhase;
         var nextPhase = currentPhase.nextPhase();
-        currentPhase.executeExit();
+        gameState = currentPhase.executeExit(gameState);
         currentPhase = nextPhase == null ? Phases.drawPhase : nextPhase;
 
-        GS.gameStateData_global.currentPhase = currentPhase;
-        currentPhase.executeEntry();
+        gameState.gameStateData.currentPhase = currentPhase;
+        gameState = currentPhase.executeEntry(gameState);
 
 
         return gameState;
@@ -62,18 +62,18 @@ public class DeclareAttackInteraction : Interaction {
 
     protected override GS doExecute(GS gameState)
     {
-        var ownCreatureCollection = GS.gameStateData_global.activeController.player.side.creatures;
-        var otherCreatureCollection = GS.gameStateData_global.passiveController.player.side.creatures;
+        var ownCreatureCollection = gameState.gameStateData.activeController.player.side.creatures;
+        var otherCreatureCollection = gameState.gameStateData.passiveController.player.side.creatures;
 
         var idx = ownCreatureCollection.find(creature);
         var opponent = otherCreatureCollection[idx];
         if (opponent == null) {
             // direct attack
-            new DamagePlayerEffect(creature.stats.attack, GS.gameStateData_global.passiveController.player).apply(owner);
+            gameState = new DamagePlayerEffect(creature.stats.attack, gameState.gameStateData.passiveController.player).apply(gameState, owner);
         }
         else {
-            new DamageCreatureEffect(creature.stats.attack, opponent).apply(owner);
-            new DamageCreatureEffect(opponent.stats.attack, creature).apply(owner);
+            gameState = new DamageCreatureEffect(creature.stats.attack, opponent).apply(gameState, owner);
+            gameState = new DamageCreatureEffect(opponent.stats.attack, creature).apply(gameState, owner);
         }
         creature.hasAttacked = true;
         return gameState;
@@ -123,10 +123,10 @@ public class PlayCardInteraction : Interaction {
 
     protected override GS doExecute(GS gameState)
     {
-        GS.ga_global.energyActionHandler.Invoke(EnergyActionKey.PAY, new EnergyPayload(card.cost, card), () => {
+        gameState.ga.energyActionHandler.Invoke(EnergyActionKey.PAY, new EnergyPayload(card.cost, card), () => {
             owner.side.energy = owner.side.energy.Without(card.cost);
             hand.remove(card);
-            card.use(owner);
+            card.use(gameState, owner);
         });
 
         return gameState;
@@ -164,7 +164,7 @@ public class SacCardInteraction : Interaction {
 
     protected override GS doExecute(GS gameState)
     {
-        GS.ga_global.energyActionHandler.Invoke(EnergyActionKey.SAC, new EnergyPayload(target.cost, target), () => {
+        gameState.ga.energyActionHandler.Invoke(EnergyActionKey.SAC, new EnergyPayload(target.cost, target), () => {
             hand.remove(target);
             owner.side.maxEnergy = owner.side.maxEnergy.With(target.sac);
             owner.side.energy = owner.side.energy.With(target.sac);
@@ -201,6 +201,7 @@ public class SelectTargetInteraction : Interaction {
 
     protected override GS doExecute(GS gameState)
     {
+        context.gameState = gameState;
         target.callback(context);
         target.called = true;
         return gameState;

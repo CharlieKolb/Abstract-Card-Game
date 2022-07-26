@@ -95,14 +95,6 @@ public class Player
         // if (lifepoints <= 0) triggerLoss();
     }
 
-    public bool hasOptions()
-    {
-        if (side.hasOptions()) return true;
-
-        return false;
-    }
-    
-
     public void drawCard()
     {
         if (side.deck.isEmpty())
@@ -209,33 +201,33 @@ public class GamePhase
 {
     public string phaseName;
     Func<GamePhase> _nextPhase;
-    Action<GamePhase> _onEntry;
-    Action<GamePhase> _onExit;
-    Func<GamePhase, bool> _hasOptions;
-    public GamePhase(string name, Func<GamePhase> nextPhase, Action<GamePhase> onEntry, Action<GamePhase> onExit, Func<GamePhase, bool> hasOptions)
+    Action<GS, GamePhase> _onEntry;
+    Action<GS, GamePhase> _onExit;
+    public GamePhase(string name, Func<GamePhase> nextPhase, Action<GS, GamePhase> onEntry, Action<GS, GamePhase> onExit)
     {
         phaseName = name;
         _nextPhase = nextPhase;
         _onEntry = onEntry;
         _onExit = onExit;
-        _hasOptions = hasOptions;
     }
 
-    public void executeEntry() {
-        GS.ga_global.phaseActionHandler.Invoke(PhaseActionKey.ENTER, new PhasePayload(this), () => _onEntry.Invoke(this));
+    public GS executeEntry(GS gameState) {
+        gameState.ga.phaseActionHandler.Invoke(PhaseActionKey.ENTER, new PhasePayload(this), () => _onEntry.Invoke(gameState, this));
+        return gameState;
     }
-    public void executeExit() {
-        GS.ga_global.phaseActionHandler.Invoke(PhaseActionKey.EXIT, new PhasePayload(this), () => _onExit.Invoke(this));
+    public GS executeExit(GS gameState) {
+        gameState.ga.phaseActionHandler.Invoke(PhaseActionKey.EXIT, new PhasePayload(this), () => _onExit.Invoke(gameState, this));
+        return gameState;
     }
-    public bool hasOptions() { return _hasOptions.Invoke(this); }
     public GamePhase nextPhase() { return _nextPhase.Invoke(); }
 }
 
 public class PhaseUtil
 {
-    public static void drawCard(GamePhase p)
+    public static void drawCard(GS gameState, GamePhase p)
     {
-        GS.gameStateData_global.activeController.player.drawCard();
+        // TODO(GameConfig)
+        gameState.gameStateData.activeController.player.drawCard();
     }
 }
 
@@ -249,15 +241,14 @@ public static class Phases
 
     static Phases()
     {
-        Action<GamePhase> defaultEntry = (GamePhase p) => { };
-        Action<GamePhase> defaultExit = (GamePhase p) => { };
-        Func<GamePhase, bool> defaultHasOptions = (GamePhase p) => false;
+        Action<GS, GamePhase> defaultEntry = (GS gs, GamePhase p) => { };
+        Action<GS, GamePhase> defaultExit = (GS gs, GamePhase p) => { };
 
-        endPhase = new GamePhase("EndPhase", () => null, defaultEntry, defaultExit, defaultHasOptions);
-        mainPhase2 = new GamePhase("Main Phase 2", () => endPhase, defaultEntry, defaultExit, defaultHasOptions);
-        battlePhase = new GamePhase("Battle Phase", () => mainPhase2, defaultEntry, defaultExit, defaultHasOptions);
-        mainPhase1 = new GamePhase("Main Phase 1", () => battlePhase, defaultEntry, defaultExit, defaultHasOptions);
-        drawPhase = new GamePhase("Draw Phase", () => mainPhase1, defaultEntry, (p) => PhaseUtil.drawCard(p), defaultHasOptions);
+        endPhase = new GamePhase("EndPhase", () => null, defaultEntry, defaultExit);
+        mainPhase2 = new GamePhase("Main Phase 2", () => endPhase, defaultEntry, defaultExit);
+        battlePhase = new GamePhase("Battle Phase", () => mainPhase2, defaultEntry, defaultExit);
+        mainPhase1 = new GamePhase("Main Phase 1", () => battlePhase, defaultEntry, defaultExit);
+        drawPhase = new GamePhase("Draw Phase", () => mainPhase1, defaultEntry, (gs, p) => PhaseUtil.drawCard(gs, p));
     }
 }
 
@@ -325,10 +316,6 @@ public class ACardGame : MonoBehaviour
             controller = p2Controller,
             deck = deckBp2, 
         };
-
-        GS.gameStateData_global.activeController = p1Controller;
-        GS.gameStateData_global.passiveController = p2Controller;
-
 
         myCardGame = new MyCardGame(s1, s2);
     }

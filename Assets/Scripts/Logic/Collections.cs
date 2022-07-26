@@ -87,9 +87,9 @@ public class CreatureCollection : BoardCollection<CreatureEntity> {
         
     }
 
-    protected override void InvokeCountChanged(Diff<CreatureEntity> diff, Action action)
+    protected override void InvokeCountChanged(GS gameState, Diff<CreatureEntity> diff, Action action)
     {
-        GS.ga_global.creatureAreaActionHandler.Invoke(
+        gameState.ga.creatureAreaActionHandler.Invoke(
             BoardAreaActionKey.COUNT_CHANGED,
             new CreatureAreaPayload(this, diff),
             action
@@ -116,24 +116,24 @@ public abstract class BoardCollection<E> : Collection<E>, ITargetable
     //     return res;
     // }
 
-    protected abstract void InvokeCountChanged(Diff<E> diff, Action action);
+    protected abstract void InvokeCountChanged(GS gameState, Diff<E> diff, Action action);
 
-    public bool tryPlay(E entity, int index, EffectContext context) {
+    public bool tryPlay(GS gameState, E entity, int index, EffectContext context) {
         if (content[index] != null) return false;
 
-        InvokeCountChanged(Differ<E>.FromAdded(entity), () => content[index] = entity);
+        InvokeCountChanged(gameState, Differ<E>.FromAdded(entity), () => content[index] = entity);
 
         return true;
     }
     
 
-    public List<E> clearEntities(Predicate<Element<E>> condition, EffectContext effectContext) {
+    public List<E> clearEntities(GS gameState, Predicate<Element<E>> condition, EffectContext effectContext) {
         var cleared = new List<E>();
         foreach (var entityCtx in getExisting()) {
             var entity = entityCtx.value;
             
             if (condition.Invoke(entityCtx)) {
-                InvokeCountChanged(Differ<E>.FromRemoved(entity), () => {
+                InvokeCountChanged(gameState, Differ<E>.FromRemoved(entity), () => {
                     content[entityCtx.index] = null;
                     cleared.Add(entity);
                 });
@@ -143,15 +143,15 @@ public abstract class BoardCollection<E> : Collection<E>, ITargetable
         return cleared;
     }
 
-    public E clearEntity(int index, EffectContext effectContext) {
-        var list = clearEntities(x => x.index == index, effectContext);
+    public E clearEntity(GS gameState, int index, EffectContext effectContext) {
+        var list = clearEntities(gameState, x => x.index == index, effectContext);
         if (list.Count == 0) return null;
 
         return list[0];
     }
 
-    public E clearEntity(E entity, EffectContext effectContext) {
-        var list = clearEntities(x => x.value == entity, effectContext);
+    public E clearEntity(GS gameState, E entity, EffectContext effectContext) {
+        var list = clearEntities(gameState, x => x.value == entity, effectContext);
         if (list.Count == 0) return null;
 
         return list[0];
@@ -168,6 +168,7 @@ public abstract class CardCollection : Collection<Card>, ITargetable
     }
 
     public void add(Card card) {
+        // TODO(ExtAPI)
         GS.ga_global.cardCollectionActionHandler.Invoke(
             CardCollectionActionKey.COUNT_CHANGED,
             new CardCollectionPayload(this, Differ<Card>.FromAdded(card)),
@@ -176,6 +177,7 @@ public abstract class CardCollection : Collection<Card>, ITargetable
     }
 
     public void remove(Card card) {
+        // TODO(ExtAPI)
         GS.ga_global.cardCollectionActionHandler.Invoke(
             CardCollectionActionKey.COUNT_CHANGED,
             new CardCollectionPayload(this, Differ<Card>.FromRemoved(card)),
@@ -204,6 +206,7 @@ public abstract class CardCollection : Collection<Card>, ITargetable
 public class Deck : CardCollection
 {
     public Deck() {
+        // TODO(ExtAPI)
         GS.ga_global.cardCollectionActionHandler.before.onAll(x => { if (Equals(x.arg.collection)) GS.ga_global.deckActionHandler.before.Trigger(x.key, makePayload(x.arg)); });
         GS.ga_global.cardCollectionActionHandler.after.onAll(x => { if (Equals(x.arg.collection)) GS.ga_global.deckActionHandler.after.Trigger(x.key, makePayload(x.arg)); });
     }
@@ -245,6 +248,7 @@ public class Deck : CardCollection
 public class Graveyard : CardCollection
 {
     public Graveyard() {
+        // TODO(ExtAPI)
         GS.ga_global.cardCollectionActionHandler.before.onAll(x => { if (Equals(x.arg.collection)) GS.ga_global.graveyardActionHandler.before.Trigger(x.key, makePayload(x.arg)); });
         GS.ga_global.cardCollectionActionHandler.after.onAll(x => { if (Equals(x.arg.collection)) GS.ga_global.graveyardActionHandler.after.Trigger(x.key, makePayload(x.arg)); });
     }
@@ -264,6 +268,7 @@ public class Graveyard : CardCollection
 public class Hand : CardCollection
 {
     public Hand() {
+        // TODO(ExtAPI)
         GS.ga_global.cardCollectionActionHandler.before.onAll(x => { if (Equals(x.arg.collection)) GS.ga_global.handActionHandler.before.Trigger(x.key, makePayload(x.arg)); });
         GS.ga_global.cardCollectionActionHandler.after.onAll(x => { if (Equals(x.arg.collection)) GS.ga_global.handActionHandler.after.Trigger(x.key, makePayload(x.arg)); });
     }

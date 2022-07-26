@@ -75,6 +75,8 @@ public class GameActionHandler<ArgType>
         this.engine = engine;
     }
 
+    // should be moved to the engine, with before and after being part of the state
+    // before and after will probably take and return gamestates
     public void Invoke(string key, ArgType argType, Action action)
     {
         GS.PushAction(

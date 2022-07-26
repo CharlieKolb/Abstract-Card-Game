@@ -56,21 +56,25 @@ public class Engine {
 
         GS.ga_global = new GameActions(this);
         gameState = new GS(this);
+
+        gameState.gameStateData.activeController = s1.controller;
+        gameState.gameStateData.passiveController = s2.controller;
+
     }
 
     public async void startGame() {
         s1.Instantiate();
         s2.Instantiate();
 
-        GS.gameStateData_global.currentPhase = Phases.drawPhase;
-        GS.gameStateData_global.currentPhase.executeEntry();
+        gameState.gameStateData.currentPhase = Phases.drawPhase;
+        gameState = gameState.gameStateData.currentPhase.executeEntry(gameState);
 
-        GS.ga_global.phaseActionHandler.after.on(PhaseActionKey.EXIT, (p) => {
+        gameState.ga.phaseActionHandler.after.on(PhaseActionKey.EXIT, (p) => {
             if (p.phase == Phases.endPhase)
             {
-                GS.gameStateData_global.passiveController = active.controller;
+                gameState.gameStateData.passiveController = active.controller;
                 active = (s1.Equals(active)) ? s2 : s1;
-                GS.gameStateData_global.activeController = active.controller;
+                gameState.gameStateData.activeController = active.controller;
             }
         });
 
@@ -120,7 +124,7 @@ public class Engine {
     public List<Interaction> getInteractions(SideConfig sideConfig) {
         var res = new List<Interaction>();
 
-        if (sideConfig.controller != GS.gameStateData_global.activeController) {
+        if (sideConfig.controller != gameState.gameStateData.activeController) {
             return res;
         }
 
@@ -138,7 +142,7 @@ public class Engine {
     private List<Interaction> getInteractions(Player owner, Hand hand) {
         var all = hand.getExisting();
         var playable = all
-            .Where(c => c.value.canUseFromHand(owner))
+            .Where(c => c.value.canUseFromHand(gameState, owner))
             .Select(x => new PlayCardInteraction(x.value, hand, owner, this))
             .ToList<Interaction>();
 
@@ -148,7 +152,7 @@ public class Engine {
     }
 
     private List<Interaction> getInteractions(Player owner, CreatureCollection creatures) {
-        if (GS.gameStateData_global.activeController.player != owner || GS.gameStateData_global.currentPhase != Phases.battlePhase) {
+        if (gameState.gameStateData.activeController.player != owner || gameState.gameStateData.currentPhase != Phases.battlePhase) {
             return new List<Interaction>();
         }
 
@@ -165,7 +169,7 @@ public class Engine {
         res.AddRange(
             side.creatures.getAll()
                 .Select(e => 
-                    new EffectContext()
+                    new EffectContext(gameState)
                         .WithOwner(side.player)
                         .WithEntity(new CreatureCollectionIndex {
                             index = e.index,
@@ -178,7 +182,7 @@ public class Engine {
         res.AddRange(
             side.creatures.getExisting()
                 .Select(e => 
-                    new EffectContext()
+                    new EffectContext(gameState)
                         .WithOwner(side.player)
                         .WithEntity(e.value)
             )
@@ -188,7 +192,7 @@ public class Engine {
         res.AddRange(
             side.hand.getAll()
                 .Select(e => 
-                    new EffectContext()
+                    new EffectContext(gameState)
                         .WithOwner(side.player)
                         .WithEntity(e.value)
             )
@@ -196,7 +200,7 @@ public class Engine {
 
         foreach (var x in new List<Entity>{ side.deck, side.hand, side.graveyard }) {
             res.Add(
-                new EffectContext()
+                new EffectContext(gameState)
                     .WithOwner(side.player)
                     .WithEntity(x)
             );

@@ -17,16 +17,17 @@ public abstract class Card : Entity {
         this.effects = cardBP.effects.Select(x => x.Clone()).ToList();
     }
 
-    public void use(Player owner) {
-        effects.ForEach(x => x.apply(owner));
+    public GS use(GS gameState, Player owner) {
+        effects.ForEach(x => x.apply(gameState, owner));
+        return gameState;
     }
 
-    public bool canUseFromHand(Player owner) {
-        if (GS.gameStateData_global.activeController.player != owner.side.player ||
-        !new List<GamePhase>{ Phases.mainPhase1, Phases.mainPhase2 }.Contains(GS.gameStateData_global.currentPhase)) {
+    public bool canUseFromHand(GS gameState, Player owner) {
+        if (gameState.gameStateData.activeController.player != owner.side.player ||
+        !new List<GamePhase>{ Phases.mainPhase1, Phases.mainPhase2 }.Contains(gameState.gameStateData.currentPhase)) {
             return false;
         }
-        return cost.canBePaid(owner.side.energy) && cardBP.effects.TrueForAll(x => x.canApply(owner));
+        return cost.canBePaid(owner.side.energy) && cardBP.effects.TrueForAll(x => x.canApply(gameState, owner));
     }
 }
 

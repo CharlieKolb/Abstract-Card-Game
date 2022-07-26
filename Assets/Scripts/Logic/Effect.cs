@@ -10,6 +10,12 @@ public class EffectContext {
     public Effect effect;
     public Player owner;
 
+    public GS gameState;
+
+    public EffectContext(GS gameState) {
+        this.gameState = gameState;
+    }
+
     public EffectContext WithEntity(Entity target) {
         this.targetEntity = target;
         return this;
@@ -54,18 +60,19 @@ public abstract class Effect : Entity
     public Effect()
     {}
 
-    public EffectContext getContext() {
-        return new EffectContext();
+    public virtual bool canApply(GS gameState, Player owner) {
+        return requests.All(x => x.hasValidTargetCondition(new EffectContext(gameState).WithOwner(owner)));
     }
 
-    public virtual bool canApply(Player owner) {
-        return requests.All(x => x.hasValidTargetCondition(new EffectContext().WithOwner(owner)));
-    }
+    protected abstract GS doApply(GS gameState, Player owner);
 
-    protected abstract void doApply(Player owner);
-
-    public void apply(Player owner) {
-        GS.ga_global.effectActionHandler.Invoke(EffectActionKey.TRIGGERED, new EffectPayload(this), () => doApply(owner));
+    public GS apply(GS gameState, Player owner) {
+        // engine.InvokeEffect(myEffect)
+        // ..
+        // gs = myEffect.apply(gs, owner)
+        // TODO(Engine)
+        GS.ga_global.effectActionHandler.Invoke(EffectActionKey.TRIGGERED, new EffectPayload(this), () => doApply(gameState, owner));
+        return gameState;
     }
 
     public abstract Effect Clone();
@@ -73,9 +80,10 @@ public abstract class Effect : Entity
 
 public class SelfDrawEffect : Effect
 {
-    protected override void doApply(Player owner)
+    protected override GS doApply(GS gameState, Player owner)
     {
         owner.drawCard();
+        return gameState;
     }
 
     public override Effect Clone()
@@ -102,9 +110,10 @@ public class MutateDamageEffect : Effect {
         this.damageEffect = damageEffect;
     }
 
-    protected override void doApply(Player owner)
+    protected override GS doApply(GS gameState, Player owner)
     {
         damageEffect.setAmount(formula(damageEffect.getAmount()));
+        return gameState;
     }
 
     public override Effect Clone()
@@ -121,17 +130,18 @@ public class DamagePlayerEffect : Effect, IDamageEffect {
         this.target = target;
     }
 
-    protected override void doApply(Player owner)
+    protected override GS doApply(GS gameState, Player owner)
     {
         var board = owner.side.creatures;
-        GS.ga_global.playerActionHandler.Invoke(PlayerActionKey.DAMAGED, new PlayerPayload(target), () => {
+        gameState.ga.playerActionHandler.Invoke(PlayerActionKey.DAMAGED, new PlayerPayload(target), () => {
             target.lifepoints -= amount;
         });
         if (target.lifepoints <= 0) {
-            GS.ga_global.playerActionHandler.Invoke(PlayerActionKey.DIES, new PlayerPayload(target), () => {
+            gameState.ga.playerActionHandler.Invoke(PlayerActionKey.DIES, new PlayerPayload(target), () => {
                 // todo: handle loss
             });
         }
+        return gameState;
     }
 
     public int getAmount() {
@@ -156,24 +166,25 @@ public class DamageCreatureEffect : Effect {
         this.target = target;
     }
 
-    protected override void doApply(Player owner)
+    protected override GS doApply(GS gameState, Player owner)
     {
-        GS.ga_global.creatureActionHandler.Invoke(CreatureEntityActionKey.DAMAGED, new CreaturePayload(target), () => {
+        gameState.ga.creatureActionHandler.Invoke(CreatureEntityActionKey.DAMAGED, new CreaturePayload(target), () => {
             target.stats.health -= amount;
         });
 
         if (target.stats.health <= 0) {
-            GS.ga_global.creatureActionHandler.Invoke(
+            gameState.ga.creatureActionHandler.Invoke(
                 CreatureEntityActionKey.DEATH,
                 new CreaturePayload(target),
                 () => {
-                    var x = getContext().WithEffect(this).WithOwner(owner).WithEntity(target);
+                    var x = new EffectContext(gameState).WithEffect(this).WithOwner(owner).WithEntity(target);
                     // Just clear it on both rather than looking, should probably have a function for this
-                    GS.gameStateData_global.activeController.player.side.creatures.clearEntity(target, x);
-                    GS.gameStateData_global.passiveController.player.side.creatures.clearEntity(target, x);
+                    gameState.gameStateData.activeController.player.side.creatures.clearEntity(gameState, target, x);
+                    gameState.gameStateData.passiveController.player.side.creatures.clearEntity(gameState, target, x);
                 }
             );
         }
+        return gameState;
     }
 
     public int getAmount() {
@@ -202,19 +213,20 @@ public class SpawnCreatureEffect : Effect
         }));
     }
 
-    public override bool canApply(Player owner) {
-        if (!base.canApply(owner)) return false;
+    public override bool canApply(GS gameState, Player owner) {
+        if (!base.canApply(gameState, owner)) return false;
 
         var board = owner.side.creatures;
         return board.getExisting().Count() < board.Count;
     }
 
-    protected override void doApply(Player owner)
+    protected override GS doApply(GS gameState, Player owner)
     {
         var board = owner.side.creatures;
-        if(!board.tryPlay(new CreatureEntity(owner, data), index, getContext())) {
+        if(!board.tryPlay(gameState, new CreatureEntity(owner, data), index, new EffectContext(gameState).WithEffect(this).WithOwner(owner))) {
             throw new System.Exception("Unable to play card!");
         }
+        return gameState;
     }
 
     public override Effect Clone()
