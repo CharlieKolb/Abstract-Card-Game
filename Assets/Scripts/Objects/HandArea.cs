@@ -35,8 +35,11 @@ public class HandArea : Area<Hand, Card, CardObject> {
 
 
     protected override void initCollection() {
-        GS.ga_global.handActionHandler.after.on(HandActionKey.COUNT_CHANGED, (x) => {
-            if (x.collection == this.collection) doRefresh(x.diff);
+        collection.Subscribe(HandActionKey.COUNT_CHANGED, (obj) => {
+            var payload = (CardCollectionPayload) obj;
+            Debug.Log("C");
+
+            doRefresh(payload.diff);
         });
         
     }

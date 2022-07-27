@@ -3,6 +3,8 @@ using System.Collections;
 using System.Collections.Generic;
 using System;
 
+using Debug = UnityEngine.Debug;
+
 public class Element<Content> {
     public Content value { get; set; }
     public int index { get; set; }
@@ -89,12 +91,13 @@ public class CreatureCollection : BoardCollection<CreatureEntity> {
 
     protected override void InvokeCountChanged(GS gameState, Diff<CreatureEntity> diff, Action action)
     {
+        var cap = new CreatureAreaPayload(this, diff);
         gameState.ga.creatureAreaActionHandler.Invoke(
             BoardAreaActionKey.COUNT_CHANGED,
-            new CreatureAreaPayload(this, diff),
+            cap,
             action
         );
-
+        Announce(BoardAreaActionKey.COUNT_CHANGED, cap);
     }
 }
 
@@ -163,26 +166,38 @@ public abstract class CardCollection : Collection<Card>, ITargetable
 {
     public virtual bool hidden() { return true; }
 
+    protected void Trigger(string key, Diff<Card> diff, Action action) {
+        var pl = new CardCollectionPayload(this, diff);
+        GS.ga_global.cardCollectionActionHandler.Invoke(
+            key,
+            pl,
+            action
+        );
+        Debug.Log("A");
+        Announce(key, pl);
+    }
+    
     public bool isEmpty() {
         return content.Count == 0;
     }
 
     public void add(Card card) {
         // TODO(ExtAPI)
-        GS.ga_global.cardCollectionActionHandler.Invoke(
+        Trigger(
             CardCollectionActionKey.COUNT_CHANGED,
-            new CardCollectionPayload(this, Differ<Card>.FromAdded(card)),
+            Differ<Card>.FromAdded(card),
             () => content.Add(card)
         );
     }
 
     public void remove(Card card) {
         // TODO(ExtAPI)
-        GS.ga_global.cardCollectionActionHandler.Invoke(
+        Trigger(
             CardCollectionActionKey.COUNT_CHANGED,
-            new CardCollectionPayload(this, Differ<Card>.FromRemoved(card)),
+            Differ<Card>.FromRemoved(card),
             () => content.Remove(card)
         );
+
     }
 
     public void Shuffle() {
