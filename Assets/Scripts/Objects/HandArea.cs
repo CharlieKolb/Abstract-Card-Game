@@ -37,7 +37,6 @@ public class HandArea : Area<Hand, Card, CardObject> {
     protected override void initCollection() {
         collection.Subscribe(HandActionKey.COUNT_CHANGED, (obj) => {
             var payload = (CardCollectionPayload) obj;
-            Debug.Log("C");
 
             doRefresh(payload.diff);
         });

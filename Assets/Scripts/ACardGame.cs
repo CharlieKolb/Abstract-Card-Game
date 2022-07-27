@@ -108,8 +108,9 @@ public class Player
 
 public class GameStateData {
     public GamePhase currentPhase;
+
     public AbstractCardGameController activeController;
-    public AbstractCardGameController passiveController;
+    public List<AbstractCardGameController> passiveControllers = new List<AbstractCardGameController>();
 }
 
 
@@ -138,20 +139,20 @@ public class GameActions {
 
     public GameActionHandler<EffectPayload> effectActionHandler;
 
-    public GameActions(Engine engine) {
-        playerActionHandler = new GameActionHandler<PlayerPayload>(engine);
-        cardActionHandler = new GameActionHandler<CardActionPayload>(engine);
-        cardCollectionActionHandler = new GameActionHandler<CardCollectionPayload>(engine);
-        handActionHandler = new GameActionHandler<HandPayload>(engine);
-        deckActionHandler = new GameActionHandler<DeckPayload>(engine);
-        graveyardActionHandler = new GameActionHandler<GraveyardPayload>(engine);
-        creatureAreaActionHandler = new GameActionHandler<CreatureAreaPayload>(engine);
-        entityActionHandler = new GameActionHandler<EntityPayload>(engine);
-        boardActionHandler = new GameActionHandler<BoardEntityPayload>(engine);
-        creatureActionHandler = new GameActionHandler<CreaturePayload>(engine);
-        energyActionHandler = new GameActionHandler<EnergyPayload>(engine);
-        phaseActionHandler = new GameActionHandler<PhasePayload>(engine);
-        effectActionHandler = new GameActionHandler<EffectPayload>(engine);
+    public GameActions(Engine engine, GameActions parent = null) {
+        playerActionHandler = new GameActionHandler<PlayerPayload>(engine, parent?.playerActionHandler);
+        cardActionHandler = new GameActionHandler<CardActionPayload>(engine, parent?.cardActionHandler);
+        cardCollectionActionHandler = new GameActionHandler<CardCollectionPayload>(engine, parent?.cardCollectionActionHandler);
+        handActionHandler = new GameActionHandler<HandPayload>(engine, parent?.handActionHandler);
+        deckActionHandler = new GameActionHandler<DeckPayload>(engine, parent?.deckActionHandler);
+        graveyardActionHandler = new GameActionHandler<GraveyardPayload>(engine, parent?.graveyardActionHandler);
+        creatureAreaActionHandler = new GameActionHandler<CreatureAreaPayload>(engine, parent?.creatureAreaActionHandler);
+        entityActionHandler = new GameActionHandler<EntityPayload>(engine, parent?.entityActionHandler);
+        boardActionHandler = new GameActionHandler<BoardEntityPayload>(engine, parent?.boardActionHandler);
+        creatureActionHandler = new GameActionHandler<CreaturePayload>(engine, parent?.creatureActionHandler);
+        energyActionHandler = new GameActionHandler<EnergyPayload>(engine, parent?.energyActionHandler);
+        phaseActionHandler = new GameActionHandler<PhasePayload>(engine, parent?.phaseActionHandler);
+        effectActionHandler = new GameActionHandler<EffectPayload>(engine, parent?.effectActionHandler);
     }
 
 
@@ -197,7 +198,7 @@ public class GS
 
 // Note that even before the beginning of a phase currentPhase of a Turn will already be changed
 // Similarly we are still in the old turn after end of turn
-public class GamePhase
+public class GamePhase : Entity
 {
     public string phaseName;
     Func<GamePhase> _nextPhase;
@@ -212,11 +213,15 @@ public class GamePhase
     }
 
     public GS executeEntry(GS gameState) {
-        gameState.ga.phaseActionHandler.Invoke(PhaseActionKey.ENTER, new PhasePayload(this), () => _onEntry.Invoke(gameState, this));
+        var pl = new PhasePayload(this, gameState);
+        gameState.ga.phaseActionHandler.Invoke(PhaseActionKey.ENTER, pl, () => _onEntry.Invoke(gameState, this));
+        Announce(PhaseActionKey.ENTER, pl);
         return gameState;
     }
     public GS executeExit(GS gameState) {
-        gameState.ga.phaseActionHandler.Invoke(PhaseActionKey.EXIT, new PhasePayload(this), () => _onExit.Invoke(gameState, this));
+        var pl = new PhasePayload(this, gameState);
+        gameState.ga.phaseActionHandler.Invoke(PhaseActionKey.EXIT, pl, () => _onExit.Invoke(gameState, this));
+        Announce(PhaseActionKey.EXIT, pl);
         return gameState;
     }
     public GamePhase nextPhase() { return _nextPhase.Invoke(); }
@@ -257,9 +262,9 @@ public static class Phases
 class MyCardGame
 {
     Engine engine;
-    public MyCardGame(SideConfig s1, SideConfig s2)
+    public MyCardGame(GameConfig config)
     {
-        engine = new Engine(s1, s2);
+        engine = new Engine(config);
     }
 
     public IEnumerator startGame()  {
@@ -291,6 +296,8 @@ public class ACardGame : MonoBehaviour
     void Awake()
     {
         var maker = new CardBPMaker(Instantiate, cardPrefab);
+        var p1Controller = this.transform.Find("Player1").GetComponent<AbstractCardGameController>();
+        var p2Controller = this.transform.Find("Player2").GetComponent<AbstractCardGameController>();
 
         var deckBp1 = new DeckBlueprint(new Dictionary<CardBlueprint, int>{
             { maker.makeCreatureBP("Baseball Kid"), 15 },
@@ -303,10 +310,6 @@ public class ACardGame : MonoBehaviour
         });
 
 
-        var p1Controller = this.transform.Find("Player1").GetComponent<AbstractCardGameController>();
-        var p2Controller = this.transform.Find("Player2").GetComponent<AbstractCardGameController>();
-
-
         var s1 = new SideConfig {
             controller = p1Controller,
             deck = deckBp1, 
@@ -317,10 +320,66 @@ public class ACardGame : MonoBehaviour
             deck = deckBp2, 
         };
 
-        myCardGame = new MyCardGame(s1, s2);
+
+
+        myCardGame = new MyCardGame(
+            new GameConfig(
+                new List<SideConfig>{ s1, s2 }
+            )
+        );
     }
 
     void Start() {
         StartCoroutine(myCardGame.startGame());
+    }
+}
+
+class RuleSet : IRuleSet {
+    public GameActions getActions(Engine engine) {
+        var actions = new GameActions(engine);
+
+        actions.phaseActionHandler.before.on(PhaseActionKey.ENTER, (x) => {
+            if (x.phase == Phases.drawPhase) {
+                x.activePlayer.side.energy = new Energy(x.activePlayer.side.maxEnergy);
+                
+                
+                foreach (var item in x.activePlayer.side.creatures
+                    .getExisting()
+                    .Select(x => x.value))
+                {
+                    item.hasAttacked = false;   
+                }   
+            }
+        });
+
+        actions.phaseActionHandler.after.on(PhaseActionKey.EXIT, (x) => {
+            var gsd = x.gameState.gameStateData;
+            gsd.currentPhase = gsd.currentPhase.nextPhase();
+            if (gsd.currentPhase == null) {
+                gsd.currentPhase = Phases.drawPhase;
+                gsd.passiveControllers.Add(gsd.activeController);
+                gsd.activeController = gsd.passiveControllers[0];
+                gsd.passiveControllers.RemoveAt(0);
+            }
+        });
+
+
+        return actions;
+    }
+}
+
+class GameConfig : IGameConfig {
+    List<SideConfig> configs;
+    public GameConfig(List<SideConfig> sideConfigs) {
+        configs = sideConfigs;
+    }
+
+
+    public List<SideConfig> getSides() {
+        return configs;
+    }
+
+    public IRuleSet getRuleSet() {
+        return new RuleSet();
     }
 }

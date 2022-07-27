@@ -63,13 +63,14 @@ public class DeclareAttackInteraction : Interaction {
     protected override GS doExecute(GS gameState)
     {
         var ownCreatureCollection = gameState.gameStateData.activeController.player.side.creatures;
-        var otherCreatureCollection = gameState.gameStateData.passiveController.player.side.creatures;
+        // TODO(TwoPlayer) - replace this with a "target player" logic
+        var otherCreatureCollection = gameState.gameStateData.passiveControllers[0].player.side.creatures;
 
         var idx = ownCreatureCollection.find(creature);
         var opponent = otherCreatureCollection[idx];
         if (opponent == null) {
             // direct attack
-            gameState = new DamagePlayerEffect(creature.stats.attack, gameState.gameStateData.passiveController.player).apply(gameState, owner);
+            gameState = new DamagePlayerEffect(creature.stats.attack, gameState.gameStateData.passiveControllers[0].player).apply(gameState, owner);
         }
         else {
             gameState = new DamageCreatureEffect(creature.stats.attack, opponent).apply(gameState, owner);

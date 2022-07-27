@@ -14,11 +14,13 @@ public class OnAllContext<Key, ArgType>
 
 public class ActionHandler<Key, ArgType>
 {
+    ActionHandler<Key, ArgType> parent; // Can be null. Child events also invoke parent
+
     Dictionary<Key, List<Action<ArgType>>> actions;
     List<Action<OnAllContext<Key, ArgType>>> actionsOnAll;
 
-    public ActionHandler()
-    {
+    public ActionHandler(ActionHandler<Key, ArgType> parent = null) {
+        this.parent = parent;
         actions = new Dictionary<Key, List<Action<ArgType>>>();
         actionsOnAll = new List<Action<OnAllContext<Key, ArgType>>>();
     }
@@ -55,7 +57,10 @@ public class ActionHandler<Key, ArgType>
 
     public void Trigger(Key key, ArgType arg)
     {
+        if (parent != null) parent.Trigger(key, arg);
+
         if (actions.ContainsKey(key)) actions[key].ForEach(x => x.Invoke(arg));
+       
         actionsOnAll.ForEach(x => x.Invoke(new OnAllContext<Key, ArgType>
         {
             key = key,
@@ -66,12 +71,14 @@ public class ActionHandler<Key, ArgType>
 
 public class GameActionHandler<ArgType>
 {
-    public ActionHandler<string, ArgType> before = new ActionHandler<string, ArgType>();
-    public ActionHandler<string, ArgType> after = new ActionHandler<string, ArgType>();
+    public ActionHandler<string, ArgType> before;
+    public ActionHandler<string, ArgType> after;
 
     Engine engine;
 
-    public GameActionHandler(Engine engine) {
+    public GameActionHandler(Engine engine, GameActionHandler<ArgType> parent = null) {
+        before = new ActionHandler<string, ArgType>(parent?.before);
+        after = new ActionHandler<string, ArgType>(parent?.after);
         this.engine = engine;
     }
 

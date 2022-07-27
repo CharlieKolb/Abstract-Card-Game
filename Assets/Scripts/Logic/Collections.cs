@@ -173,7 +173,6 @@ public abstract class CardCollection : Collection<Card>, ITargetable
             pl,
             action
         );
-        Debug.Log("A");
         Announce(key, pl);
     }
     

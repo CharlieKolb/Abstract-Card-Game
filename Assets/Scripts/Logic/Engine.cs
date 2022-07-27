@@ -39,55 +39,52 @@ public enum EngineState {
     Ready,
 }
 
+public interface IRuleSet {
+    GameActions getActions(Engine engine);
+}
+
+public interface IGameConfig {
+    List<SideConfig> getSides();
+    IRuleSet getRuleSet();
+}
+
 public class Engine {
     GS gameState;
 
     List<IEnumerator<bool>> interactionQueue = new List<IEnumerator<bool>>();
 
-    SideConfig s1;
-    SideConfig s2;
-    SideConfig active;
+    List<SideConfig> sides;
+    SideConfig activeSide;
 
     List<EffectTarget> resolveTargetStack;
 
-    public Engine(SideConfig s1, SideConfig s2) {
-        this.s1 = s1;
-        this.s2 = s2;
+    public Engine(IGameConfig config) {
+        this.sides = config.getSides();
+        var ruleset = config.getRuleSet();
 
-        GS.ga_global = new GameActions(this);
+        GS.ga_global = new GameActions(this, ruleset.getActions(this));
         gameState = new GS(this);
 
-        gameState.gameStateData.activeController = s1.controller;
-        gameState.gameStateData.passiveController = s2.controller;
+        gameState.gameStateData.activeController = sides[0].controller;
+        gameState.gameStateData.passiveControllers = sides.GetRange(1, sides.Count - 1).Select(x => x.controller).ToList();
 
     }
 
     public async void startGame() {
-        s1.Instantiate();
-        s2.Instantiate();
+        sides.ForEach(x => x.Instantiate());
 
         gameState.gameStateData.currentPhase = Phases.drawPhase;
         gameState = gameState.gameStateData.currentPhase.executeEntry(gameState);
 
-        gameState.ga.phaseActionHandler.after.on(PhaseActionKey.EXIT, (p) => {
-            if (p.phase == Phases.endPhase)
-            {
-                gameState.gameStateData.passiveController = active.controller;
-                active = (s1.Equals(active)) ? s2 : s1;
-                gameState.gameStateData.activeController = active.controller;
-            }
-        });
 
         for (int i = 0; i < 5; ++i)
         {
-            s1.controller.player.drawCard();
-            s2.controller.player.drawCard();
+            sides.ForEach(s => s.controller.player.drawCard());
         }
-        active = s1;
 
 
         while (true) {
-            var interaction = await active.controller.selectInteraction(getNormalInteractions(gameState));
+            var interaction = await gameState.gameStateData.activeController.selectInteraction(getNormalInteractions(gameState));
             var newGS = await interaction.execute(gameState);
             if (newGS != null) gameState = newGS;
         }
@@ -97,7 +94,7 @@ public class Engine {
     public async Task<GS> resolveEffect(GS gameState, Effect effect, Player owner) {
         var tasks = new List<Interaction>();
         foreach (var x in effect.requests) {
-            var res = await active.controller.selectInteraction(getTargetCandidates(owner.side, x));
+            var res = await gameState.gameStateData.activeController.selectInteraction(getTargetCandidates(owner.side, x));
             if (res is CancelSelectionInteraction) return null;
             tasks.Add(res);
         }
@@ -113,9 +110,7 @@ public class Engine {
     public List<Interaction> getNormalInteractions(GS gameState) {
         var res = new List<Interaction>();
 
-        res.AddRange(getInteractions(s1));
-        res.AddRange(getInteractions(s2));
-
+        sides.ForEach(x => res.AddRange(getInteractions(x)));
 
         return res;
     }

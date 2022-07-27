@@ -29,7 +29,7 @@ public class CreatureEntity : BoardEntity
         this.stats = new Stats(data.stats);
         // TODO(GameConfig)
         GS.ga_global.phaseActionHandler.after.on(PhaseActionKey.ENTER, p => {
-            if (GS.gameStateData_global.activeController.player == owner && p.phase == Phases.drawPhase) {
+            if (p.phase == Phases.drawPhase) {
                 hasAttacked = false;
             }
         });

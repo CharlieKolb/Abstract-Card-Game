@@ -134,9 +134,13 @@ public class EffectPayload {
 
 public class PhasePayload {
     public GamePhase phase;
+    public GS gameState;
+    public Player activePlayer;
 
-    public PhasePayload(GamePhase phase) {
+    public PhasePayload(GamePhase phase, GS gameState) {
         this.phase = phase;
+        this.gameState = gameState;
+        activePlayer = gameState.gameStateData.activeController.player;
     }
 }
 

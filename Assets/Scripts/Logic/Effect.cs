@@ -180,7 +180,8 @@ public class DamageCreatureEffect : Effect {
                     var x = new EffectContext(gameState).WithEffect(this).WithOwner(owner).WithEntity(target);
                     // Just clear it on both rather than looking, should probably have a function for this
                     gameState.gameStateData.activeController.player.side.creatures.clearEntity(gameState, target, x);
-                    gameState.gameStateData.passiveController.player.side.creatures.clearEntity(gameState, target, x);
+                    // TODO(Hack) - this should know where something died
+                    gameState.gameStateData.passiveControllers.ForEach(p => p.player.side.creatures.clearEntity(gameState, target, x));
                 }
             );
         }
