@@ -28,6 +28,7 @@ public abstract class Area<Collection, Content, ContentObject> : EntityObject
     // Start is called before the first frame update
     public virtual void Start()
     {
+        Debug.Log("A: " + this);
         objectMapper = new Dictionary<Content, ContentObject>();
     }
 
@@ -56,6 +57,7 @@ public abstract class Area<Collection, Content, ContentObject> : EntityObject
     }
 
     public void Init(Collection collection) {
+        Debug.Log("B: " + this);
         this.collection = collection;
         initCollection();
         doRefresh(Differ<Content>.FromAdded(collection.getExisting().Select(x => x.value).ToArray()));

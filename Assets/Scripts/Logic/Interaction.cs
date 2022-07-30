@@ -9,11 +9,11 @@ public abstract class Interaction {
     public async Task<GS> execute(GS gameState) {
         var start = await startExecute(gameState);
 
-        if (!start) return null;
+        if (start == null) return gameState;
 
         return doExecute(gameState);        
     }
-    protected virtual Task<bool> startExecute(GS gameState) { return Task.FromResult(true); }
+    protected virtual Task<GS> startExecute(GS gameState) { return Task.FromResult(gameState); }
     protected abstract GS doExecute(GS gameState);
 
 }
@@ -104,23 +104,34 @@ public class PlayCardInteraction : Interaction {
         this.engine = engine;
     }
 
-    protected async override Task<bool> startExecute(GS gameState) {
-        var newGS = gameState;
+    protected async override Task<GS> startExecute(GS gameState) {
         foreach (var effect in card.effects) {
-            newGS = await engine.resolveEffect(newGS, effect, owner);
-            if (newGS == null) return false;
+            gameState = await engine.resolveEffect(gameState, effect, owner);
+            if (gameState == null) return null;
         }
 
         // note: missing gameState transforms
-        return true;
+        return gameState;
     }
 
     protected override GS doExecute(GS gameState)
     {
-        gameState.ga.energyActionHandler.Invoke(EnergyActionKey.PAY, new EnergyPayload(card.cost, card), () => {
+        gameState = gameState.ga.energyActionHandler.Invoke(EnergyActionKey.PAY, new EnergyPayload(gameState, card.cost, card), (pl) => {
             owner.side.energy = owner.side.energy.Without(card.cost);
-            hand.remove(card);
-            card.use(gameState, owner);
+            return pl.gameState;
+        });
+
+        gameState = gameState.ga.handActionHandler.Invoke(HandActionKey.USED, new HandPayload(gameState, hand, Differ<Card>.FromRemoved(card)), (pl) => {
+            pl.collection.applyDiff(pl.diff);
+            pl.collection.Announce(HandActionKey.COUNT_CHANGED, pl);
+            return pl.gameState;
+        });
+
+        gameState = gameState.ga.cardActionHandler.Invoke(CardActionKey.IS_USED, new CardActionPayload(gameState, card), pl => {
+            // TODO(Payload)
+            pl.gameState = pl.card.use(pl.gameState, owner);
+            pl.card.Announce(CardActionKey.IS_USED, pl);
+            return pl.gameState;
         });
 
         return gameState;
@@ -158,10 +169,18 @@ public class SacCardInteraction : Interaction {
 
     protected override GS doExecute(GS gameState)
     {
-        gameState.ga.energyActionHandler.Invoke(EnergyActionKey.SAC, new EnergyPayload(target.cost, target), () => {
-            hand.remove(target);
+        gameState.ga.handActionHandler.Invoke(HandActionKey.SACCED, new HandPayload(gameState, hand, Differ<Card>.FromRemoved(target)), (pl) => {
+            pl.collection.applyDiff(pl.diff);
+            pl.collection.Announce(HandActionKey.COUNT_CHANGED, pl);
+
+            return pl.gameState;
+        });
+
+        gameState.ga.energyActionHandler.Invoke(EnergyActionKey.SAC, new EnergyPayload(gameState, target.cost, target), (pl) => {
+            // TODO(Payload)
             owner.side.maxEnergy = owner.side.maxEnergy.With(target.sac);
             owner.side.energy = owner.side.energy.With(target.sac);
+            return pl.gameState;
         });
         return gameState;
     }

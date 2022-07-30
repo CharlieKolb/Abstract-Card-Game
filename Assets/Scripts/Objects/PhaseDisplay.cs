@@ -8,6 +8,9 @@ public class PhaseDisplay : MonoBehaviour
     List<Vector3> positions = new List<Vector3>();
     Transform glowTransform;
     int currentPhase = -1;
+    int count;
+
+    Engine engine;
 
     // Start is called before the first frame update
     void Start()
@@ -22,11 +25,15 @@ public class PhaseDisplay : MonoBehaviour
             phases[i].transform.position = worldPos;
         }
         glowTransform = transform.Find("Glow").transform;
-        GS.ga_global.phaseActionHandler.before.on(PhaseActionKey.ENTER, (_) => {
+        engine.actions.phaseActionHandler.after.listen(PhaseActionKey.ENTER, (pl) => {
             currentPhase += 1;
             if (currentPhase == count) currentPhase = 0;
             glowTransform.position = positions[currentPhase];
         });
+    }
+
+    public void RegisterEngine(Engine engine) {
+        this.engine = engine;
     }
 
     float[] cardLayout(int count) {

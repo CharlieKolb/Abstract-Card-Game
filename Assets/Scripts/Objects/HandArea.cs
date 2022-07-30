@@ -30,13 +30,13 @@ public class HandArea : Area<Hand, Card, CardObject> {
         if (collection == null) return;
 
 
-        moveCardsTowardsTarget(Time.deltaTime * 0.5f);
+        // moveCardsTowardsTarget(Time.deltaTime * 0.5f);
     }
 
 
     protected override void initCollection() {
         collection.Subscribe(HandActionKey.COUNT_CHANGED, (obj) => {
-            var payload = (CardCollectionPayload) obj;
+            var payload = (HandPayload) obj;
 
             doRefresh(payload.diff);
         });
@@ -53,11 +53,10 @@ public class HandArea : Area<Hand, Card, CardObject> {
         for(var i = 0; i < collection.Count; ++i) {
             var card = collection[i];
             var gameObj = objectMapper[card].gameObject;
-            gameObj.SetActive(true);
 
             var width = gameObj.transform.GetComponent<BoxCollider>().bounds.size.z;
             targetPositions.Add(new Vector3(width * cl[i], 0, 0) + transform.position);
-
+            gameObj.SetActive(true);
         }
         moveCardsTowardsTarget(1f);
     }

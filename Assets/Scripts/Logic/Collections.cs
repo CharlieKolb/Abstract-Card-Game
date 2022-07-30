@@ -89,16 +89,7 @@ public class CreatureCollection : BoardCollection<CreatureEntity> {
         
     }
 
-    protected override void InvokeCountChanged(GS gameState, Diff<CreatureEntity> diff, Action action)
-    {
-        var cap = new CreatureAreaPayload(this, diff);
-        gameState.ga.creatureAreaActionHandler.Invoke(
-            BoardAreaActionKey.COUNT_CHANGED,
-            cap,
-            action
-        );
-        Announce(BoardAreaActionKey.COUNT_CHANGED, cap);
-    }
+        // Announce(BoardAreaActionKey.COUNT_CHANGED, cap);
 }
 
 
@@ -119,42 +110,38 @@ public abstract class BoardCollection<E> : Collection<E>, ITargetable
     //     return res;
     // }
 
-    protected abstract void InvokeCountChanged(GS gameState, Diff<E> diff, Action action);
+    public Diff<E> tryPlay(GS gameState, E entity, int index, EffectContext context) {
+        if (content[index] != null) return null;
 
-    public bool tryPlay(GS gameState, E entity, int index, EffectContext context) {
-        if (content[index] != null) return false;
+        content[index] = entity;
 
-        InvokeCountChanged(gameState, Differ<E>.FromAdded(entity), () => content[index] = entity);
-
-        return true;
+        return Differ<E>.FromAdded(entity);
     }
     
 
-    public List<E> clearEntities(GS gameState, Predicate<Element<E>> condition, EffectContext effectContext) {
+    public List<E> clearEntities(Predicate<Element<E>> condition, EffectContext effectContext) {
         var cleared = new List<E>();
         foreach (var entityCtx in getExisting()) {
             var entity = entityCtx.value;
             
             if (condition.Invoke(entityCtx)) {
-                InvokeCountChanged(gameState, Differ<E>.FromRemoved(entity), () => {
-                    content[entityCtx.index] = null;
-                    cleared.Add(entity);
-                });
+                content[entityCtx.index] = null;
+                cleared.Add(entity);
             };
         }
 
         return cleared;
     }
 
-    public E clearEntity(GS gameState, int index, EffectContext effectContext) {
-        var list = clearEntities(gameState, x => x.index == index, effectContext);
+    public E clearEntity(int index, EffectContext effectContext) {
+        var list = clearEntities(x => x.index == index, effectContext);
         if (list.Count == 0) return null;
 
         return list[0];
     }
 
-    public E clearEntity(GS gameState, E entity, EffectContext effectContext) {
-        var list = clearEntities(gameState, x => x.value == entity, effectContext);
+    public E clearEntity(E entity, EffectContext effectContext) {
+        var list = clearEntities(x => x.value == entity, effectContext);
         if (list.Count == 0) return null;
 
         return list[0];
@@ -164,38 +151,21 @@ public abstract class BoardCollection<E> : Collection<E>, ITargetable
 // Card Collections
 public abstract class CardCollection : Collection<Card>, ITargetable
 {
-    public virtual bool hidden() { return true; }
-
-    protected void Trigger(string key, Diff<Card> diff, Action action) {
-        var pl = new CardCollectionPayload(this, diff);
-        GS.ga_global.cardCollectionActionHandler.Invoke(
-            key,
-            pl,
-            action
-        );
-        Announce(key, pl);
-    }
-    
     public bool isEmpty() {
         return content.Count == 0;
     }
 
+    public void applyDiff(Diff<Card> diff) {
+        diff.added.ForEach(x => add(x));
+        diff.removed.ForEach(x => remove(x));
+    }
+
     public void add(Card card) {
-        // TODO(ExtAPI)
-        Trigger(
-            CardCollectionActionKey.COUNT_CHANGED,
-            Differ<Card>.FromAdded(card),
-            () => content.Add(card)
-        );
+        content.Add(card);
     }
 
     public void remove(Card card) {
-        // TODO(ExtAPI)
-        Trigger(
-            CardCollectionActionKey.COUNT_CHANGED,
-            Differ<Card>.FromRemoved(card),
-            () => content.Remove(card)
-        );
+        content.Remove(card);
 
     }
 
@@ -219,21 +189,6 @@ public abstract class CardCollection : Collection<Card>, ITargetable
 
 public class Deck : CardCollection
 {
-    public Deck() {
-        // TODO(ExtAPI)
-        GS.ga_global.cardCollectionActionHandler.before.onAll(x => { if (Equals(x.arg.collection)) GS.ga_global.deckActionHandler.before.Trigger(x.key, makePayload(x.arg)); });
-        GS.ga_global.cardCollectionActionHandler.after.onAll(x => { if (Equals(x.arg.collection)) GS.ga_global.deckActionHandler.after.Trigger(x.key, makePayload(x.arg)); });
-    }
-    
-    private DeckPayload makePayload(CardCollectionPayload cp) {
-        return new DeckPayload(this, cp.diff);
-    }
-
-    public override bool hidden()
-    {
-        return true;
-    }
-
     public Card draw()
     {
         Card card = this.content[0];
@@ -260,39 +215,9 @@ public class Deck : CardCollection
 }
 
 public class Graveyard : CardCollection
-{
-    public Graveyard() {
-        // TODO(ExtAPI)
-        GS.ga_global.cardCollectionActionHandler.before.onAll(x => { if (Equals(x.arg.collection)) GS.ga_global.graveyardActionHandler.before.Trigger(x.key, makePayload(x.arg)); });
-        GS.ga_global.cardCollectionActionHandler.after.onAll(x => { if (Equals(x.arg.collection)) GS.ga_global.graveyardActionHandler.after.Trigger(x.key, makePayload(x.arg)); });
-    }
-
-    private GraveyardPayload makePayload(CardCollectionPayload cp) {
-        return new GraveyardPayload(this, cp.diff);
-    }
-
-
-    public override bool hidden()
-    {
-        return false;
-    }
-}
-
+{}
 
 public class Hand : CardCollection
 {
-    public Hand() {
-        // TODO(ExtAPI)
-        GS.ga_global.cardCollectionActionHandler.before.onAll(x => { if (Equals(x.arg.collection)) GS.ga_global.handActionHandler.before.Trigger(x.key, makePayload(x.arg)); });
-        GS.ga_global.cardCollectionActionHandler.after.onAll(x => { if (Equals(x.arg.collection)) GS.ga_global.handActionHandler.after.Trigger(x.key, makePayload(x.arg)); });
-    }
-
-    private HandPayload makePayload(CardCollectionPayload cp) {
-        return new HandPayload(this, cp.diff);
-    }
-
-    public override bool hidden()
-    {
-        return true;
-    }
+    public Hand() {}
 }

@@ -27,12 +27,6 @@ public class CreatureEntity : BoardEntity
     {
         this.baseData = data;
         this.stats = new Stats(data.stats);
-        // TODO(GameConfig)
-        GS.ga_global.phaseActionHandler.after.on(PhaseActionKey.ENTER, p => {
-            if (p.phase == Phases.drawPhase) {
-                hasAttacked = false;
-            }
-        });
     }
 }
 

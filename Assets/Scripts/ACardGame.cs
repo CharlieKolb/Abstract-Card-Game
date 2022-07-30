@@ -95,14 +95,19 @@ public class Player
         // if (lifepoints <= 0) triggerLoss();
     }
 
-    public void drawCard()
+    public GS drawCard(GS gameState)
     {
         if (side.deck.isEmpty())
         {
             // triggerLoss();
-            return;
+            return gameState;
         }
-        side.hand.add(side.deck.draw());
+
+        var card = side.deck.draw();
+        card.Announce(CardActionKey.IS_DRAW, new CardActionPayload(gameState, card));
+        side.hand.add(card);
+        side.hand.Announce(HandActionKey.COUNT_CHANGED, new HandPayload(gameState, side.hand, Differ<Card>.FromAdded(card)));
+        return gameState;
     }
 }
 
@@ -154,44 +159,16 @@ public class GameActions {
         phaseActionHandler = new GameActionHandler<PhasePayload>(engine, parent?.phaseActionHandler);
         effectActionHandler = new GameActionHandler<EffectPayload>(engine, parent?.effectActionHandler);
     }
-
-
 }
-
 
 public class GS
 {
-    // to be initialized
-    public static GameStateData gameStateData_global = new GameStateData();
-    public static GameActions ga_global;
+    public GameStateData gameStateData;
+    public GameActions ga;
 
-    public GameStateData gameStateData => gameStateData_global;
-    public GameActions ga => ga_global;
-
-    public GS(Engine engine) {
-        // ga = new GameActions(engine);
-    }
-
-
-    // end
-    // Need an explicit (action, after) stack for cards to interact with queued casts
-    private static List<(Action, Action)> gameStack = new List<(Action, Action)>();
-
-    public static void PushAction(Action before, Action action, Action after) {
-        gameStack.Add((action, after));
-        before(); // might add further calls to the stack
-
-        // assumptions: no interaction removes cards from the stack.
-        //              may instead replace actions with no-ops
-        if (action != gameStack[gameStack.Count - 1].Item1) {
-            throw new Exception("GameStack invariant broken");
-        }
-        action();
-        if (action != gameStack[gameStack.Count - 1].Item1) {
-            throw new Exception("GameStack invariant broken 2");
-        }
-        gameStack.RemoveAt(gameStack.Count - 1);
-        after();
+    public GS(GameActions actions) {
+        ga = actions;
+        gameStateData = new GameStateData();
     }
 }
 
@@ -202,25 +179,26 @@ public class GamePhase : Entity
 {
     public string phaseName;
     Func<GamePhase> _nextPhase;
-    Action<GS, GamePhase> _onEntry;
-    Action<GS, GamePhase> _onExit;
-    public GamePhase(string name, Func<GamePhase> nextPhase, Action<GS, GamePhase> onEntry, Action<GS, GamePhase> onExit)
+    public GamePhase(string name, Func<GamePhase> nextPhase)
     {
         phaseName = name;
         _nextPhase = nextPhase;
-        _onEntry = onEntry;
-        _onExit = onExit;
     }
 
     public GS executeEntry(GS gameState) {
-        var pl = new PhasePayload(this, gameState);
-        gameState.ga.phaseActionHandler.Invoke(PhaseActionKey.ENTER, pl, () => _onEntry.Invoke(gameState, this));
+        var pl = new PhasePayload(gameState, this);
+        gameState.ga.phaseActionHandler.Invoke(PhaseActionKey.ENTER, pl, (pl) => {
+            return pl.gameState;
+        });
         Announce(PhaseActionKey.ENTER, pl);
         return gameState;
     }
+
     public GS executeExit(GS gameState) {
-        var pl = new PhasePayload(this, gameState);
-        gameState.ga.phaseActionHandler.Invoke(PhaseActionKey.EXIT, pl, () => _onExit.Invoke(gameState, this));
+        var pl = new PhasePayload(gameState, this);
+        gameState = gameState.ga.phaseActionHandler.Invoke(PhaseActionKey.EXIT, pl, (pl) => {
+            return pl.gameState;
+        });
         Announce(PhaseActionKey.EXIT, pl);
         return gameState;
     }
@@ -238,14 +216,11 @@ public static class Phases
 
     static Phases()
     {
-        Action<GS, GamePhase> defaultEntry = (GS gs, GamePhase p) => { };
-        Action<GS, GamePhase> defaultExit = (GS gs, GamePhase p) => { };
-
-        endPhase = new GamePhase("EndPhase", () => null, defaultEntry, defaultExit);
-        mainPhase2 = new GamePhase("Main Phase 2", () => endPhase, defaultEntry, defaultExit);
-        battlePhase = new GamePhase("Battle Phase", () => mainPhase2, defaultEntry, defaultExit);
-        mainPhase1 = new GamePhase("Main Phase 1", () => battlePhase, defaultEntry, defaultExit);
-        drawPhase = new GamePhase("Draw Phase", () => mainPhase1, defaultEntry, defaultExit);
+        endPhase = new GamePhase("EndPhase", () => null);
+        mainPhase2 = new GamePhase("Main Phase 2", () => endPhase);
+        battlePhase = new GamePhase("Battle Phase", () => mainPhase2);
+        mainPhase1 = new GamePhase("Main Phase 1", () => battlePhase);
+        drawPhase = new GamePhase("Draw Phase", () => mainPhase1);
     }
 }
 
@@ -253,7 +228,8 @@ public static class Phases
 
 class MyCardGame
 {
-    Engine engine;
+    public Engine engine { get; private set; }
+
     public MyCardGame(GameConfig config)
     {
         engine = new Engine(config);
@@ -312,13 +288,22 @@ public class ACardGame : MonoBehaviour
             deck = deckBp2, 
         };
 
+        var config = new GameConfig(
+            new List<SideConfig>{ s1, s2 }
+        );
 
 
         myCardGame = new MyCardGame(
-            new GameConfig(
-                new List<SideConfig>{ s1, s2 }
-            )
+            config
         );
+
+        transform
+            .Find("PhaseDisplay")
+            .GetComponent<PhaseDisplay>()
+            .RegisterEngine(
+                myCardGame.engine
+            );
+
     }
 
     void Start() {
@@ -332,26 +317,41 @@ class RuleSet : IRuleSet {
 
         actions.phaseActionHandler.before.on(PhaseActionKey.ENTER, (x) => {
             if (x.phase == Phases.drawPhase) {
-                var energy = new Energy(x.activePlayer.side.maxEnergy);
-                actions.energyActionHandler.Invoke(
+                var energy = new Energy(x.gameState.gameStateData.activeController.player.side.maxEnergy);
+                x.gameState = actions.energyActionHandler.Invoke(
                     EnergyActionKey.RECHARGE, 
-                    new EnergyPayload(energy, null),
-                    () => x.activePlayer.side.energy = energy
+                    new EnergyPayload(x.gameState, energy, null),
+                    (pl) => {
+                        pl.gameState.gameStateData.activeController.player.side.energy = pl.resources;
+                        return pl.gameState;
+                    }
                 );
 
-                x.activePlayer.drawCard();
+                x.gameState = actions.playerActionHandler.Invoke(
+                    PlayerActionKey.DRAWS,
+                    new PlayerPayload(
+                        x.gameState,
+                        x.gameState.gameStateData.activeController.player
+                    ),
+                    (pl) => {
+                        pl.gameState = pl.gameState.gameStateData.activeController.player.drawCard(pl.gameState);
+                        return pl.gameState;
+                    }
+                );
                 
-                foreach (var creature in x.activePlayer.side.creatures
+                foreach (var creature in x.gameState.gameStateData.activeController.player.side.creatures
                     .getExisting()
                     .Select(x => x.value))
                 {
                     creature.hasAttacked = false;   
                 }   
             }
+
+            return x;
         });
 
-        actions.phaseActionHandler.after.on(PhaseActionKey.EXIT, (x) => {
-            var gsd = x.gameState.gameStateData;
+        actions.phaseActionHandler.after.on(PhaseActionKey.EXIT, (gs) => {
+            var gsd = gs.gameStateData;
             gsd.currentPhase = gsd.currentPhase.nextPhase();
             if (gsd.currentPhase == null) {
                 gsd.currentPhase = Phases.drawPhase;
@@ -359,7 +359,8 @@ class RuleSet : IRuleSet {
                 gsd.activeController = gsd.passiveControllers[0];
                 gsd.passiveControllers.RemoveAt(0);
             }
-            gsd.currentPhase.executeEntry(x.gameState);
+            gsd.currentPhase.executeEntry(gs);
+            return gs;
         });
 
 
@@ -369,8 +370,10 @@ class RuleSet : IRuleSet {
 
 class GameConfig : IGameConfig {
     List<SideConfig> configs;
+    public RuleSet ruleSet;
     public GameConfig(List<SideConfig> sideConfigs) {
         configs = sideConfigs;
+        ruleSet = new RuleSet();
     }
 
 
@@ -379,6 +382,6 @@ class GameConfig : IGameConfig {
     }
 
     public IRuleSet getRuleSet() {
-        return new RuleSet();
+        return ruleSet;
     }
 }

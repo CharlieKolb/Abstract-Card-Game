@@ -18,7 +18,9 @@ public abstract class Card : Entity {
     }
 
     public GS use(GS gameState, Player owner) {
-        effects.ForEach(x => x.apply(gameState, owner));
+        effects.ForEach(x => {
+            gameState = x.apply(gameState, owner);
+        });
         return gameState;
     }
 

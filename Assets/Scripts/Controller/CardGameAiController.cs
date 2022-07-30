@@ -16,10 +16,9 @@ public class CardGameAiController : AbstractCardGameController {
     }
 
     protected override void doInstantiate() {
-        // This shouldn't listen to this directly, we should instead propagate an event as with the interactions
         Phases.drawPhase.Subscribe(PhaseActionKey.ENTER, (x) => {
             var payload = (PhasePayload) x;
-            if (payload.activePlayer == this.player) {
+            if (payload.gameState.gameStateData.activeController == this) {
                 resetTurnState();
             }
         });

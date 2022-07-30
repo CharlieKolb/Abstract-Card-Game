@@ -49,7 +49,7 @@ public interface IGameConfig {
 }
 
 public class Engine {
-    GS gameState;
+    private GS gameState;
 
     List<IEnumerator<bool>> interactionQueue = new List<IEnumerator<bool>>();
 
@@ -58,12 +58,13 @@ public class Engine {
 
     List<EffectTarget> resolveTargetStack;
 
+    public GameActions actions => gameState.ga;
+
     public Engine(IGameConfig config) {
         this.sides = config.getSides();
         var ruleset = config.getRuleSet();
 
-        GS.ga_global = new GameActions(this, ruleset.getActions(this));
-        gameState = new GS(this);
+        gameState = new GS(new GameActions(this, ruleset.getActions(this)));
 
         gameState.gameStateData.activeController = sides[0].controller;
         gameState.gameStateData.passiveControllers = sides.GetRange(1, sides.Count - 1).Select(x => x.controller).ToList();
@@ -73,15 +74,16 @@ public class Engine {
     public async void startGame() {
         sides.ForEach(x => x.Instantiate());
 
-        gameState.gameStateData.currentPhase = Phases.drawPhase;
-        gameState = gameState.gameStateData.currentPhase.executeEntry(gameState);
-
-
+        // TODO(GameConfig)
         for (int i = 0; i < 5; ++i)
         {
-            sides.ForEach(s => s.controller.player.drawCard());
+            sides.ForEach(s => {
+                gameState = s.controller.player.drawCard(gameState);
+            });
         }
 
+        gameState.gameStateData.currentPhase = Phases.drawPhase;
+        gameState = gameState.gameStateData.currentPhase.executeEntry(gameState);
 
         while (true) {
             var interaction = await gameState.gameStateData.activeController.selectInteraction(getNormalInteractions(gameState));

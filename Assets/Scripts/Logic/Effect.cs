@@ -67,11 +67,14 @@ public abstract class Effect : Entity
     protected abstract GS doApply(GS gameState, Player owner);
 
     public GS apply(GS gameState, Player owner) {
-        // engine.InvokeEffect(myEffect)
-        // ..
-        // gs = myEffect.apply(gs, owner)
         // TODO(Engine)
-        GS.ga_global.effectActionHandler.Invoke(EffectActionKey.TRIGGERED, new EffectPayload(this), () => doApply(gameState, owner));
+        gameState.ga.effectActionHandler.Invoke(EffectActionKey.TRIGGERED, new EffectPayload(gameState, this), (pl) => {
+            var res = pl.effect.doApply(gameState, owner);
+            if (res == null) return pl.gameState;
+
+            pl.effect.Announce(EffectActionKey.TRIGGERED, pl);
+            return res;
+        });
         return gameState;
     }
 
@@ -82,7 +85,8 @@ public class SelfDrawEffect : Effect
 {
     protected override GS doApply(GS gameState, Player owner)
     {
-        owner.drawCard();
+
+        gameState = owner.drawCard(gameState);
         return gameState;
     }
 
@@ -133,12 +137,14 @@ public class DamagePlayerEffect : Effect, IDamageEffect {
     protected override GS doApply(GS gameState, Player owner)
     {
         var board = owner.side.creatures;
-        gameState.ga.playerActionHandler.Invoke(PlayerActionKey.DAMAGED, new PlayerPayload(target), () => {
-            target.lifepoints -= amount;
+        gameState.ga.playerActionHandler.Invoke(PlayerActionKey.DAMAGED, new PlayerPayload(gameState, target), (pl) => {
+            pl.target.lifepoints -= amount;
+            return pl.gameState;
         });
         if (target.lifepoints <= 0) {
-            gameState.ga.playerActionHandler.Invoke(PlayerActionKey.DIES, new PlayerPayload(target), () => {
+            gameState.ga.playerActionHandler.Invoke(PlayerActionKey.DIES, new PlayerPayload(gameState, target), (pl) => {
                 // todo: handle loss
+                return pl.gameState;
             });
         }
         return gameState;
@@ -168,20 +174,37 @@ public class DamageCreatureEffect : Effect {
 
     protected override GS doApply(GS gameState, Player owner)
     {
-        gameState.ga.creatureActionHandler.Invoke(CreatureEntityActionKey.DAMAGED, new CreaturePayload(target), () => {
-            target.stats.health -= amount;
+        // TODO(Payload)
+        gameState.ga.creatureActionHandler.Invoke(CreatureEntityActionKey.DAMAGED, new CreaturePayload(gameState, target), (pl) => {
+            pl.entity.stats.health -= amount;
+            pl.entity.Announce(CreatureEntityActionKey.DEATH, new CreaturePayload(gameState, pl.entity));
+            return pl.gameState;
         });
 
         if (target.stats.health <= 0) {
             gameState.ga.creatureActionHandler.Invoke(
                 CreatureEntityActionKey.DEATH,
-                new CreaturePayload(target),
-                () => {
+                new CreaturePayload(gameState, target),
+                (pl) => {
                     var x = new EffectContext(gameState).WithEffect(this).WithOwner(owner).WithEntity(target);
+                    
+                    var mySide = pl.gameState.gameStateData.activeController.player.side;
+                    var theirSide = pl.gameState.gameStateData.passiveControllers[0].player.side;
+                    
                     // Just clear it on both rather than looking, should probably have a function for this
-                    gameState.gameStateData.activeController.player.side.creatures.clearEntity(gameState, target, x);
-                    // TODO(Hack) - this should know where something died
-                    gameState.gameStateData.passiveControllers.ForEach(p => p.player.side.creatures.clearEntity(gameState, target, x));
+                    var mine = mySide.creatures.clearEntity(target, x);
+                    var theirs = theirSide.creatures.clearEntity(target, x);
+
+                    if (mine != null) {
+                        mine.Announce(CreatureEntityActionKey.DEATH, new CreaturePayload(gameState, mine));
+                        mySide.creatures.Announce(CreatureAreaActionKey.COUNT_CHANGED, new CreatureAreaPayload(pl.gameState, mySide.creatures, Differ<CreatureEntity>.FromRemoved(mine)));
+                    }
+                    if (theirs != null) {
+                        theirs.Announce(CreatureEntityActionKey.DEATH, new CreaturePayload(gameState, theirs));
+                        theirSide.creatures.Announce(CreatureAreaActionKey.COUNT_CHANGED, new CreatureAreaPayload(pl.gameState, theirSide.creatures, Differ<CreatureEntity>.FromRemoved(theirs)));
+                    }
+
+                    return pl.gameState;
                 }
             );
         }
@@ -224,9 +247,11 @@ public class SpawnCreatureEffect : Effect
     protected override GS doApply(GS gameState, Player owner)
     {
         var board = owner.side.creatures;
-        if(!board.tryPlay(gameState, new CreatureEntity(owner, data), index, new EffectContext(gameState).WithEffect(this).WithOwner(owner))) {
+        var diff = board.tryPlay(gameState, new CreatureEntity(owner, data), index, new EffectContext(gameState).WithEffect(this).WithOwner(owner));
+        if(diff == null) {
             throw new System.Exception("Unable to play card!");
         }
+        board.Announce(CreatureAreaActionKey.COUNT_CHANGED, new CreatureAreaPayload(gameState, board, diff));
         return gameState;
     }
 
