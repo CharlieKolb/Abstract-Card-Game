@@ -18,11 +18,5 @@ public class Side
         graveyard = new Graveyard();
         maxEnergy = new Energy(); 
         energy = new Energy(maxEnergy);
-
-        GS.ga_global.phaseActionHandler.after.on(PhaseActionKey.ENTER, p => {
-            if (p.phase == Phases.drawPhase && GS.gameStateData_global.activeController.player == player) {
-                energy = new Energy(maxEnergy);
-            }
-        });
     }
 }
