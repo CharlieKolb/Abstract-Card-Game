@@ -21,14 +21,7 @@ public abstract class Interaction {
 public class PassPhaseInteraction : Interaction {
     protected override GS doExecute(GS gameState)
     {
-        var currentPhase = gameState.gameStateData.currentPhase;
-        var nextPhase = currentPhase.nextPhase();
-        gameState = currentPhase.executeExit(gameState);
-        currentPhase = nextPhase == null ? Phases.drawPhase : nextPhase;
-
-        gameState.gameStateData.currentPhase = currentPhase;
-        gameState = currentPhase.executeEntry(gameState);
-
+        gameState = gameState.gameStateData.currentPhase.executeExit(gameState);
 
         return gameState;
     }

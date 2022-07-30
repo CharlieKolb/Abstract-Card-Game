@@ -6,6 +6,9 @@ using System.Collections;
 using Action = System.Action;
 
 public class CardGameAiController : AbstractCardGameController {
+
+    public float timeBetweenActions;
+    
     private bool saccedThisTurn;
 
     private void resetTurnState() {
@@ -35,7 +38,7 @@ public class CardGameAiController : AbstractCardGameController {
         var t = new TaskCompletionSource<bool>();
 
 
-        StartCoroutine(waitFor(0.5f, () => t.SetResult(true)));
+        StartCoroutine(waitFor(timeBetweenActions, () => t.SetResult(true)));
 
         await t.Task;
 

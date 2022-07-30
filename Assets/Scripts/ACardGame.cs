@@ -227,14 +227,6 @@ public class GamePhase : Entity
     public GamePhase nextPhase() { return _nextPhase.Invoke(); }
 }
 
-public class PhaseUtil
-{
-    public static void drawCard(GS gameState, GamePhase p)
-    {
-        // TODO(GameConfig)
-        gameState.gameStateData.activeController.player.drawCard();
-    }
-}
 
 public static class Phases
 {
@@ -253,7 +245,7 @@ public static class Phases
         mainPhase2 = new GamePhase("Main Phase 2", () => endPhase, defaultEntry, defaultExit);
         battlePhase = new GamePhase("Battle Phase", () => mainPhase2, defaultEntry, defaultExit);
         mainPhase1 = new GamePhase("Main Phase 1", () => battlePhase, defaultEntry, defaultExit);
-        drawPhase = new GamePhase("Draw Phase", () => mainPhase1, defaultEntry, (gs, p) => PhaseUtil.drawCard(gs, p));
+        drawPhase = new GamePhase("Draw Phase", () => mainPhase1, defaultEntry, defaultExit);
     }
 }
 
@@ -340,14 +332,20 @@ class RuleSet : IRuleSet {
 
         actions.phaseActionHandler.before.on(PhaseActionKey.ENTER, (x) => {
             if (x.phase == Phases.drawPhase) {
-                x.activePlayer.side.energy = new Energy(x.activePlayer.side.maxEnergy);
+                var energy = new Energy(x.activePlayer.side.maxEnergy);
+                actions.energyActionHandler.Invoke(
+                    EnergyActionKey.RECHARGE, 
+                    new EnergyPayload(energy, null),
+                    () => x.activePlayer.side.energy = energy
+                );
+
+                x.activePlayer.drawCard();
                 
-                
-                foreach (var item in x.activePlayer.side.creatures
+                foreach (var creature in x.activePlayer.side.creatures
                     .getExisting()
                     .Select(x => x.value))
                 {
-                    item.hasAttacked = false;   
+                    creature.hasAttacked = false;   
                 }   
             }
         });
@@ -361,6 +359,7 @@ class RuleSet : IRuleSet {
                 gsd.activeController = gsd.passiveControllers[0];
                 gsd.passiveControllers.RemoveAt(0);
             }
+            gsd.currentPhase.executeEntry(x.gameState);
         });
 
 

@@ -29,16 +29,6 @@ public interface IPayloadBase {}
 
 public interface IKeyBase {}
 
-public abstract class GameAction<P> where P : IPayloadBase {
-    public string key;
-    public P payload;
-
-    public GameAction(string key, P payload) {
-        this.key = key;
-        this.payload = payload;
-    }
-}
-
 public class PhaseActionKey : IKeyBase {
     public static string ENTER = "ENTER";
     public static string EXIT = "EXIT";
@@ -114,6 +104,7 @@ public class GraveyardActionKey : CardCollectionActionKey  {
 public class EnergyActionKey : IKeyBase {
     public static string PAY = "PAY";
     public static string SAC = "SAC";
+    public static string RECHARGE = "RECHARGE"; // regain energy at start of turn
 }
 
 public class PlayerPayload {
