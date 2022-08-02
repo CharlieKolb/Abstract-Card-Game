@@ -1,0 +1,33 @@
+{
+    "payloads": {
+        "phase": {
+            "phase": "GamePhase"
+        },
+        "entity": {
+            "targetEntity": "Entity"
+        },
+        "player": {
+            "targetPlayer": "Player"
+        },
+        "creature": {
+            "targetCreature": "CreatureEntity"
+        },
+        "damage": {
+            "damageAmount": "int"
+        }
+    },
+    "reactions": {
+        "phase": {
+            "enter": "phase",
+            "exit": "phase"
+        },
+        "player": {
+            "damaged": [
+                "player",
+                "damage"
+            ],
+            "died": "player",
+            "drew": "player"
+        }
+    }
+}

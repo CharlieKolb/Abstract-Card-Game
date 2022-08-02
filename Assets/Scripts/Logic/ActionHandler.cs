@@ -128,4 +128,15 @@ public class GameActionHandler<Payload> where Payload : PayloadBase
 
         return gs;
     }
+
+    public GS Invoke(Invokable<Payload> invokable, Func<Payload, GS> action)
+    {
+        invokable.payload = before.Trigger(invokable.key, invokable.payload);
+        
+        var gs = action(invokable.payload);
+
+        gs = after.Trigger(invokable.key, gs);
+
+        return gs;
+    }
 }

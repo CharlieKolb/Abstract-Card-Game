@@ -334,7 +334,7 @@ class RuleSet : IRuleSet {
                         x.gameState.gameStateData.activeController.player
                     ),
                     (pl) => {
-                        pl.gameState = pl.gameState.gameStateData.activeController.player.drawCard(pl.gameState);
+                        pl.gameState = pl.target.drawCard(pl.gameState);
                         return pl.gameState;
                     }
                 );

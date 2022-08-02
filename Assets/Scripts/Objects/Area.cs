@@ -28,7 +28,6 @@ public abstract class Area<Collection, Content, ContentObject> : EntityObject
     // Start is called before the first frame update
     public virtual void Start()
     {
-        Debug.Log("A: " + this);
         objectMapper = new Dictionary<Content, ContentObject>();
     }
 

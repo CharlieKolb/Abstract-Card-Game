@@ -1,6 +1,19 @@
 using System.Collections.Generic;
 using System.Linq;
 
+public class Invokable<P> : PayloadBase where P : PayloadBase {
+    public string key;
+    public P payload;
+
+    public static Invokable<P> From(GS gameState, string key, P payload) {
+        var self = new Invokable<P>();
+        self.gameState = gameState;
+        self.key = key;
+        self.payload = payload;
+        return self;
+    }
+}
+
 public class Diff<Content> {
     public static Diff<Content> Empty = new Diff<Content>();
 
@@ -58,6 +71,10 @@ public class CardActionKey : IKeyBase {
 
 public abstract class PayloadBase {
     public GS gameState;
+
+    public PayloadBase() {
+        gameState = null;
+    }
 
     public PayloadBase(GS gs) {
         gameState = gs;
