@@ -37,11 +37,11 @@ def make_payloads(json_data):
         res[name] = Payload(name, make_entries(data))
     return res
 
-def make_reactions(reactions_data):
+def make_reactions(payloads, reactions_data):
     res = {}
     for k, v in reactions_data.items():
         if type(v) == type(dict()):
-            res[k] = make_reactions(v)
+            res[k] = make_reactions(payloads, v)
         else:
             if type(v) == type(""):
                 v = [v]
@@ -49,14 +49,24 @@ def make_reactions(reactions_data):
     return res
 
 
+def verify_payloads(payloads: list[Payload]):
+    seen_var_names = dict()
+    for pl in payloads:
+        for entry in pl.entries:
+            if entry.var_name in seen_var_names:
+                print(f"error: duplicate variable name '{entry.var_name}', first defined in payload '{seen_var_names[entry.var_name]}', duplicated in '{pl.name}'")
+                exit(1)
+            seen_var_names[entry.var_name] = pl.name
+
 payloads = make_payloads(data["payloads"])
+verify_payloads(payloads.values())
+# todo: verify that paylodas all have different var names
 
-#todo
-reactions = make_reactions(data["reactions"])
+reactions = make_reactions(payloads, data["reactions"])
 
 
-pp.pprint(payloads)
-pp.pprint(reactions)
+# pp.pprint(payloads)
+# pp.pprint(reactions)
 
 
 def make_payload_str(payload: Payload, indent):
@@ -66,17 +76,57 @@ def make_payload_str(payload: Payload, indent):
         res.append(" " * indent + f"{entry.var_type} {entry.var_name};")
     return res
 
+def make_constructor_parameters(payload: Payload):
+    res = []
+    res.append(f"// Payload `{payload.name}`")
+    for entry in payload.entries:
+        res.append(f"{entry.var_type} {entry.var_name}")
+    return res
+
+
+def make_constructor(name: str, payloads: list[Payload], indent: int) -> str:
+    res = []
+    payload_list = ["GS gameState"]
+    for p in payloads:
+        payload_list += make_constructor_parameters(p)
+    res.append(" " * indent + f"public {name}(")
+    res.append(",\n".join(" " * (indent + 4) + x for x in payload_list))
+
+    res.append(" " * indent + ") {")
+
+    payload_var_names = [y.split(" ")[1] for y in payload_list]
+    payload_assignments = [f"this.{name} = {name};" if not line.startswith("//") else line for line, name in zip(payload_list, payload_var_names)]
+    res.append("\n".join(" " * (indent + 4) + x for x in payload_assignments))
+
+
+    res.append(" " * indent + "}")
+
+    return res
+
+
+def make_invokable(name: str, reaction: Reaction, indent: int):
+    res = []
+    res.append(" " * indent + f"public class {name} : Invokable<{name}> " + "{")
+    for pl in reaction.payloads:
+        res += make_payload_str(pl, indent + 4)
+    res += make_constructor(name, reaction.payloads, indent + 4)
+
+    res.append(" " * indent + "}")
+    return res
+
+
+
+
 def make_class(reaction_entry, indent = 0):
     res = []
     for k, v in reaction_entry.items():
         if type(v) == Reaction:
-            res.append(" " * indent + f"public class {k.upper()} : Invokable<{k.upper()}> " + "{")
-            for pl in v.payloads:
-                res += make_payload_str(pl, indent + 4)
+            k = k.upper()
+            res += make_invokable(k, v, indent)
         else:
             res.append(" " * indent + f"public class {k.capitalize()} " + "{")
             res += make_class(v, indent + 4)
-        res.append(" " * indent + "}")
+            res.append(" " * indent + "}")
     return res
 
 def make_reaction_string(reactions):
@@ -90,4 +140,5 @@ def make_reaction_string(reactions):
     return res
 
 
-print("\n".join(make_reaction_string(reactions)))
+with open("Reactions.cs", "w+") as f:
+    f.write("\n".join(make_reaction_string(reactions)))
