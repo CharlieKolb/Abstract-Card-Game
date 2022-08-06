@@ -4,16 +4,49 @@
             "phase": "GamePhase"
         },
         "entity": {
-            "targetEntity": "Entity"
+            "entity": "Entity"
         },
         "player": {
-            "targetPlayer": "Player"
+            "player": "Player"
         },
         "creature": {
+            "creature": "CreatureEntity"
+        },
+        "targetCreature": {
             "targetCreature": "CreatureEntity"
         },
         "damage": {
             "damageAmount": "int"
+        },
+        "energy": {
+            "energyAmount": "Energy"
+        },
+        "side": {
+            "side": "Side"
+        },
+        "effect": {
+            "effect": "Effect"
+        },
+        "hand": {
+            "hand": "Hand"
+        },
+        "deck": {
+            "deck": "Deck"
+        },
+        "creatures": {
+            "creatures": "CreatureCollection"
+        },
+        "cardDiff": {
+            "cardDiff": "Diff<Card>"
+        },
+        "creatureDiff": {
+            "creatureDiff": "Diff<CreatureEntity>"
+        },
+        "card": {
+            "card": "Card"
+        },
+        "index": {
+            "index": "int"
         }
     },
     "reactions": {
@@ -26,8 +59,78 @@
                 "player",
                 "damage"
             ],
-            "died": "player",
-            "drew": "player"
+            "died": "player"
+        },
+        "energy": {
+            "recharge": [
+                "energy",
+                "side"
+            ],
+            "sac": [
+                "energy",
+                "side"
+            ],
+            "pay": [
+                "energy",
+                "side"
+            ]
+        },
+        "effect": {
+            "triggered": "effect"
+        },
+        "hand": {
+            "added": [
+                "hand",
+                "card"
+            ],
+            "removed": [
+                "hand",
+                "card"
+            ]
+        },
+        "deck": {
+            "draw": [
+                "side"
+            ]
+        },
+        "creatures": {
+            "summoned": [
+                "creatures",
+                "creature"
+            ],
+            "removed": [
+                "creatures",
+                "creature"
+            ],
+            "spawned": [
+                "creatures",
+                "creature",
+                "index"
+            ]
+        },
+        "card": {
+            "used": [
+                "card",
+                "side"
+            ],
+            "sacced": [
+                "card",
+                "side"
+            ]
+        },
+        "creature": {
+            "damaged": [
+                "creature",
+                "damage"
+            ],
+            "summon": [
+                "creature"
+            ],
+            "attack": [
+                "creature",
+                "targetCreature"
+            ],
+            "death": "creature"
         }
     }
 }

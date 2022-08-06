@@ -1,17 +1,13 @@
 using System.Collections.Generic;
 using System.Linq;
 
-public class Invokable<P> : PayloadBase where P : PayloadBase {
+public abstract class Invokable : PayloadBase {
     public string key;
-    public P payload;
-
-    public static Invokable<P> From(GS gameState, string key, P payload) {
-        var self = new Invokable<P>();
-        self.gameState = gameState;
-        self.key = key;
-        self.payload = payload;
-        return self;
+    public Invokable(GS gameState, string key): base(gameState) {
+        this.key = key;
     }
+
+    public static string Key { get { throw new System.Exception("Key was not shadowed!"); } }
 }
 
 public class Diff<Content> {
@@ -36,11 +32,6 @@ class Differ<Content> {
         };
     }
 }
-
-public class PLFab {
-    
-}
-
 
 
 public interface IKeyBase {}

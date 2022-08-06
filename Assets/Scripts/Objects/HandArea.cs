@@ -35,12 +35,8 @@ public class HandArea : Area<Hand, Card, CardObject> {
 
 
     protected override void initCollection() {
-        collection.Subscribe(HandActionKey.COUNT_CHANGED, (obj) => {
-            var payload = (HandPayload) obj;
-
-            doRefresh(payload.diff);
-        });
-        
+        collection.Subscribe<Reactions.HAND.ADDED>(Reactions.HAND.ADDED.Key, (pl) => doRefresh(Differ<Card>.FromAdded(pl.card)));
+        collection.Subscribe<Reactions.HAND.REMOVED>(Reactions.HAND.REMOVED.Key, (pl) => doRefresh(Differ<Card>.FromRemoved(pl.card)));
     }
 
     protected override void refresh(Diff<Card> diff) {

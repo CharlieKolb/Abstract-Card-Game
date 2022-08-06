@@ -579,6 +579,7 @@ MonoBehaviour:
   handArea: {fileID: 0}
   im: {fileID: 0}
   opposing: 1
+  timeBetweenActions: 0.5
 --- !u!1001 &1673530851
 PrefabInstance:
   m_ObjectHideFlags: 0

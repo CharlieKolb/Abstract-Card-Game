@@ -37,15 +37,15 @@ def make_payloads(json_data):
         res[name] = Payload(name, make_entries(data))
     return res
 
-def make_reactions(payloads, reactions_data):
+def make_reactions(payloads, reactions_data, name_path = ""):
     res = {}
     for k, v in reactions_data.items():
         if type(v) == type(dict()):
-            res[k] = make_reactions(payloads, v)
+            res[k] = make_reactions(payloads, v, name_path + f"{k}.")
         else:
-            if type(v) == type(""):
+            if type(v) == str:
                 v = [v]
-            res[k] = Reaction(k, [payloads[x] for x in v])
+            res[k] = Reaction(f"{name_path}{k}", [payloads[x] for x in sorted(v)])
     return res
 
 
@@ -73,7 +73,7 @@ def make_payload_str(payload: Payload, indent):
     res = []
     res.append(" " * indent + f"// Payload `{payload.name}`")
     for entry in payload.entries:
-        res.append(" " * indent + f"{entry.var_type} {entry.var_name};")
+        res.append(" " * indent + f"public {entry.var_type} {entry.var_name};")
     return res
 
 def make_constructor_parameters(payload: Payload):
@@ -86,13 +86,13 @@ def make_constructor_parameters(payload: Payload):
 
 def make_constructor(name: str, payloads: list[Payload], indent: int) -> str:
     res = []
-    payload_list = ["GS gameState"]
+    payload_list = []
     for p in payloads:
         payload_list += make_constructor_parameters(p)
     res.append(" " * indent + f"public {name}(")
-    res.append(",\n".join(" " * (indent + 4) + x for x in payload_list))
+    res.append(",\n".join(" " * (indent + 4) + x for x in ["GS gameState"] + payload_list))
 
-    res.append(" " * indent + ") {")
+    res.append(" " * indent + f') : base(gameState, {name}.Key) {{')
 
     payload_var_names = [y.split(" ")[1] for y in payload_list]
     payload_assignments = [f"this.{name} = {name};" if not line.startswith("//") else line for line, name in zip(payload_list, payload_var_names)]
@@ -106,8 +106,9 @@ def make_constructor(name: str, payloads: list[Payload], indent: int) -> str:
 
 def make_invokable(name: str, reaction: Reaction, indent: int):
     res = []
-    res.append(" " * indent + f"public class {name} : Invokable<{name}> " + "{")
-    for pl in reaction.payloads:
+    res.append(" " * indent + f"public class {name} : Invokable {{")
+    res.append(" " * (indent + 4) + f'public new static string Key = "{reaction.name}";')
+    for pl in sorted(reaction.payloads, key=lambda x: x.name):
         res += make_payload_str(pl, indent + 4)
     res += make_constructor(name, reaction.payloads, indent + 4)
 
@@ -119,12 +120,12 @@ def make_invokable(name: str, reaction: Reaction, indent: int):
 
 def make_class(reaction_entry, indent = 0):
     res = []
-    for k, v in reaction_entry.items():
+    for k, v in sorted(reaction_entry.items(), key=lambda x: x[0]):
+        k = k.upper()
         if type(v) == Reaction:
-            k = k.upper()
             res += make_invokable(k, v, indent)
         else:
-            res.append(" " * indent + f"public class {k.capitalize()} " + "{")
+            res.append(" " * indent + f"public class {k} " + "{")
             res += make_class(v, indent + 4)
             res.append(" " * indent + "}")
     return res

@@ -25,7 +25,7 @@ public class PhaseDisplay : MonoBehaviour
             phases[i].transform.position = worldPos;
         }
         glowTransform = transform.Find("Glow").transform;
-        engine.actions.phaseActionHandler.after.listen(PhaseActionKey.ENTER, (pl) => {
+        engine.actions.actionHandler.after.listen<Reactions.PHASE.ENTER>(Reactions.PHASE.ENTER.Key, (pl) => {
             currentPhase += 1;
             if (currentPhase == count) currentPhase = 0;
             glowTransform.position = positions[currentPhase];

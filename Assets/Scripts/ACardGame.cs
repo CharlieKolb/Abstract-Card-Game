@@ -94,21 +94,6 @@ public class Player
         lifepoints -= value;
         // if (lifepoints <= 0) triggerLoss();
     }
-
-    public GS drawCard(GS gameState)
-    {
-        if (side.deck.isEmpty())
-        {
-            // triggerLoss();
-            return gameState;
-        }
-
-        var card = side.deck.draw();
-        card.Announce(CardActionKey.IS_DRAW, new CardActionPayload(gameState, card));
-        side.hand.add(card);
-        side.hand.Announce(HandActionKey.COUNT_CHANGED, new HandPayload(gameState, side.hand, Differ<Card>.FromAdded(card)));
-        return gameState;
-    }
 }
 
 public class GameStateData {
@@ -120,44 +105,10 @@ public class GameStateData {
 
 
 public class GameActions {
-    public GameActionHandler<PlayerPayload> playerActionHandler;
-    
-    public GameActionHandler<CardActionPayload> cardActionHandler;
+    public GameActionHandler actionHandler;
 
-    public GameActionHandler<CardCollectionPayload> cardCollectionActionHandler;
-    // into
-    public GameActionHandler<HandPayload> handActionHandler;
-    public GameActionHandler<DeckPayload> deckActionHandler;
-    public GameActionHandler<GraveyardPayload> graveyardActionHandler;
-    
-    
-    public GameActionHandler<CreatureAreaPayload> creatureAreaActionHandler;
-
-    public GameActionHandler<EntityPayload> entityActionHandler;
-    public GameActionHandler<BoardEntityPayload> boardActionHandler;
-    public GameActionHandler<CreaturePayload> creatureActionHandler;
-
-
-    public GameActionHandler<EnergyPayload> energyActionHandler;
-
-    public GameActionHandler<PhasePayload> phaseActionHandler;
-
-    public GameActionHandler<EffectPayload> effectActionHandler;
-
-    public GameActions(Engine engine, GameActions parent = null) {
-        playerActionHandler = new GameActionHandler<PlayerPayload>(engine, parent?.playerActionHandler);
-        cardActionHandler = new GameActionHandler<CardActionPayload>(engine, parent?.cardActionHandler);
-        cardCollectionActionHandler = new GameActionHandler<CardCollectionPayload>(engine, parent?.cardCollectionActionHandler);
-        handActionHandler = new GameActionHandler<HandPayload>(engine, parent?.handActionHandler);
-        deckActionHandler = new GameActionHandler<DeckPayload>(engine, parent?.deckActionHandler);
-        graveyardActionHandler = new GameActionHandler<GraveyardPayload>(engine, parent?.graveyardActionHandler);
-        creatureAreaActionHandler = new GameActionHandler<CreatureAreaPayload>(engine, parent?.creatureAreaActionHandler);
-        entityActionHandler = new GameActionHandler<EntityPayload>(engine, parent?.entityActionHandler);
-        boardActionHandler = new GameActionHandler<BoardEntityPayload>(engine, parent?.boardActionHandler);
-        creatureActionHandler = new GameActionHandler<CreaturePayload>(engine, parent?.creatureActionHandler);
-        energyActionHandler = new GameActionHandler<EnergyPayload>(engine, parent?.energyActionHandler);
-        phaseActionHandler = new GameActionHandler<PhasePayload>(engine, parent?.phaseActionHandler);
-        effectActionHandler = new GameActionHandler<EffectPayload>(engine, parent?.effectActionHandler);
+    public GameActions(GameActions parent = null) {
+        actionHandler = new GameActionHandler(parent?.actionHandler);
     }
 }
 
@@ -186,20 +137,19 @@ public class GamePhase : Entity
     }
 
     public GS executeEntry(GS gameState) {
-        var pl = new PhasePayload(gameState, this);
-        gameState.ga.phaseActionHandler.Invoke(PhaseActionKey.ENTER, pl, (pl) => {
-            return pl.gameState;
+        gameState.ga.actionHandler.Invoke(new Reactions.PHASE.ENTER(gameState, this), (pl) => {
+            Announce(pl);
+            return pl;
         });
-        Announce(PhaseActionKey.ENTER, pl);
         return gameState;
     }
 
     public GS executeExit(GS gameState) {
         var pl = new PhasePayload(gameState, this);
-        gameState = gameState.ga.phaseActionHandler.Invoke(PhaseActionKey.EXIT, pl, (pl) => {
-            return pl.gameState;
+        gameState = gameState.ga.actionHandler.Invoke(new Reactions.PHASE.EXIT(gameState, this), (pl) => {
+            Announce(pl);
+            return pl;
         });
-        Announce(PhaseActionKey.EXIT, pl);
         return gameState;
     }
     public GamePhase nextPhase() { return _nextPhase.Invoke(); }
@@ -313,30 +263,26 @@ public class ACardGame : MonoBehaviour
 
 class RuleSet : IRuleSet {
     public GameActions getActions(Engine engine) {
-        var actions = new GameActions(engine);
+        var actions = new GameActions();
 
-        actions.phaseActionHandler.before.on(PhaseActionKey.ENTER, (x) => {
+        // these react on before, but should really be part of the actual invoke, not sure how to do that
+        actions.actionHandler.before.on<Reactions.PHASE.ENTER>(Reactions.PHASE.ENTER.Key, (x) => {
             if (x.phase == Phases.drawPhase) {
                 var energy = new Energy(x.gameState.gameStateData.activeController.player.side.maxEnergy);
-                x.gameState = actions.energyActionHandler.Invoke(
-                    EnergyActionKey.RECHARGE, 
-                    new EnergyPayload(x.gameState, energy, null),
+                x.gameState = actions.actionHandler.Invoke(
+                    new Reactions.ENERGY.RECHARGE(x.gameState, energy, x.gameState.gameStateData.activeController.player.side),
                     (pl) => {
-                        pl.gameState.gameStateData.activeController.player.side.energy = pl.resources;
-                        return pl.gameState;
+                        pl.side.energy = pl.energyAmount;
+                        return pl;
                     }
                 );
 
-                x.gameState = actions.playerActionHandler.Invoke(
-                    PlayerActionKey.DRAWS,
-                    new PlayerPayload(
+                x.gameState = actions.actionHandler.Invoke(
+                    new Reactions.DECK.DRAW(
                         x.gameState,
-                        x.gameState.gameStateData.activeController.player
+                        x.gameState.gameStateData.activeController.player.side
                     ),
-                    (pl) => {
-                        pl.gameState = pl.target.drawCard(pl.gameState);
-                        return pl.gameState;
-                    }
+                    GameActionsUtil.handleCardDraw
                 );
                 
                 foreach (var creature in x.gameState.gameStateData.activeController.player.side.creatures
@@ -350,8 +296,8 @@ class RuleSet : IRuleSet {
             return x;
         });
 
-        actions.phaseActionHandler.after.on(PhaseActionKey.EXIT, (gs) => {
-            var gsd = gs.gameStateData;
+        actions.actionHandler.before.on<Reactions.PHASE.EXIT>(Reactions.PHASE.EXIT.Key, (pl) => {
+            var gsd = pl.gameState.gameStateData;
             gsd.currentPhase = gsd.currentPhase.nextPhase();
             if (gsd.currentPhase == null) {
                 gsd.currentPhase = Phases.drawPhase;
@@ -359,8 +305,8 @@ class RuleSet : IRuleSet {
                 gsd.activeController = gsd.passiveControllers[0];
                 gsd.passiveControllers.RemoveAt(0);
             }
-            gsd.currentPhase.executeEntry(gs);
-            return gs;
+            pl.gameState = gsd.currentPhase.executeEntry(pl.gameState);
+            return pl;
         });
 
 

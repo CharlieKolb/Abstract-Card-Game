@@ -47,10 +47,8 @@ public class CreatureArea : Area<CreatureCollection, CreatureEntity, CreatureObj
     }
 
     protected override void initCollection() {
-        collection.Subscribe(CreatureAreaActionKey.COUNT_CHANGED, (obj) => {
-            var payload = (CreatureAreaPayload) obj;
-            doRefresh(payload.diff);
-        });
+        collection.Subscribe<Reactions.CREATURES.SPAWNED>(Reactions.CREATURES.SPAWNED.Key, (pl) => doRefresh(Differ<CreatureEntity>.FromAdded(pl.creature)));
+        collection.Subscribe<Reactions.CREATURES.REMOVED>(Reactions.CREATURES.REMOVED.Key, (pl) => doRefresh(Differ<CreatureEntity>.FromRemoved(pl.creature)));
         for (int i = 0; i < fields.Length; ++i) {
             fields[i].collection = collection;
         }

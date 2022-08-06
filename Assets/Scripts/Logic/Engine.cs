@@ -64,7 +64,7 @@ public class Engine {
         this.sides = config.getSides();
         var ruleset = config.getRuleSet();
 
-        gameState = new GS(new GameActions(this, ruleset.getActions(this)));
+        gameState = new GS(new GameActions(ruleset.getActions(this)));
 
         gameState.gameStateData.activeController = sides[0].controller;
         gameState.gameStateData.passiveControllers = sides.GetRange(1, sides.Count - 1).Select(x => x.controller).ToList();
@@ -77,9 +77,20 @@ public class Engine {
         // TODO(GameConfig)
         for (int i = 0; i < 5; ++i)
         {
-            sides.ForEach(s => {
-                gameState = s.controller.player.drawCard(gameState);
-            });
+            gameState = gameState.ga.actionHandler.Invoke(
+                new Reactions.DECK.DRAW(
+                    gameState,
+                    gameState.gameStateData.activeController.player.side
+                ),
+                GameActionsUtil.handleCardDraw
+            );
+            gameState = gameState.ga.actionHandler.Invoke(
+                new Reactions.DECK.DRAW(
+                    gameState,
+                    gameState.gameStateData.passiveControllers[0].player.side
+                ),
+                GameActionsUtil.handleCardDraw
+            );
         }
 
         gameState.gameStateData.currentPhase = Phases.drawPhase;

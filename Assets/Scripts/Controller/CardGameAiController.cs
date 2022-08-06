@@ -16,8 +16,7 @@ public class CardGameAiController : AbstractCardGameController {
     }
 
     protected override void doInstantiate() {
-        Phases.drawPhase.Subscribe(PhaseActionKey.ENTER, (x) => {
-            var payload = (PhasePayload) x;
+        Phases.drawPhase.Subscribe<Reactions.PHASE.ENTER>(Reactions.PHASE.ENTER.Key, (payload) => {
             if (payload.gameState.gameStateData.activeController == this) {
                 resetTurnState();
             }

@@ -110,7 +110,7 @@ public abstract class BoardCollection<E> : Collection<E>, ITargetable
     //     return res;
     // }
 
-    public Diff<E> tryPlay(GS gameState, E entity, int index, EffectContext context) {
+    public Diff<E> tryPlay(GS gameState, E entity, int index) {
         if (content[index] != null) return null;
 
         content[index] = entity;
@@ -119,7 +119,7 @@ public abstract class BoardCollection<E> : Collection<E>, ITargetable
     }
     
 
-    public List<E> clearEntities(Predicate<Element<E>> condition, EffectContext effectContext) {
+    public List<E> clearEntities(Predicate<Element<E>> condition) {
         var cleared = new List<E>();
         foreach (var entityCtx in getExisting()) {
             var entity = entityCtx.value;
@@ -133,15 +133,15 @@ public abstract class BoardCollection<E> : Collection<E>, ITargetable
         return cleared;
     }
 
-    public E clearEntity(int index, EffectContext effectContext) {
-        var list = clearEntities(x => x.index == index, effectContext);
+    public E clearEntity(int index) {
+        var list = clearEntities(x => x.index == index);
         if (list.Count == 0) return null;
 
         return list[0];
     }
 
-    public E clearEntity(E entity, EffectContext effectContext) {
-        var list = clearEntities(x => x.value == entity, effectContext);
+    public E clearEntity(E entity) {
+        var list = clearEntities(x => x.value == entity);
         if (list.Count == 0) return null;
 
         return list[0];
