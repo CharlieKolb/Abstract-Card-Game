@@ -229,7 +229,7 @@ public class DamageCreatureEffect : Effect {
 public class SpawnCreatureEffect : Effect
 {
     CreatureCardData data;
-    int index;
+    int index = -1;
 
     public SpawnCreatureEffect(CreatureCardData data) {
         this.data = data;

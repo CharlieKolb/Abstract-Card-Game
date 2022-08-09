@@ -67,6 +67,19 @@ public class Energy {
         return this;
     }
 
+    public int getValue(EffectHandle.ColorPattern color) {
+        switch (color) {
+            case EffectHandle.ColorPattern.Red:
+                return red;
+            case EffectHandle.ColorPattern.Green:
+                return green;
+            case EffectHandle.ColorPattern.Blue:
+                return blue;
+        }
+
+        throw new System.Exception("Unhandled color!");
+    }
+
     public override string ToString() {
         return string.Concat(Enumerable.Repeat("R", red).Concat(Enumerable.Repeat("G", green)).Concat(Enumerable.Repeat("B", blue)));
     }

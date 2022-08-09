@@ -17,6 +17,6 @@ public class CreatureCardObject : CardObject {
     }
 
     public void Update() {
-        if (statsText != null) statsText.text = creatureCard.stats.ToString();
+        if (statsText != null) statsText.text = creatureCard.creatureData.stats.ToString();
     }
 }

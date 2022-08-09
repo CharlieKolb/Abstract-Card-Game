@@ -2,7 +2,8 @@ using System.Collections.Generic;
 
 public abstract class CardData {
     public string name;
-    public string pathToMaterial;
+    protected string materialDir;
+    public string pathToMaterial => materialDir + name;
     public Energy cost;
     public Energy sac;
 
@@ -13,7 +14,7 @@ public abstract class CardData {
         this.cost = cost;
         this.sac = sac;
         this.effects = effects == null ? new List<Effect>() : effects;
-        this.pathToMaterial = materialDir + name;
+        this.materialDir = materialDir;
     }
 }
 
@@ -22,6 +23,10 @@ public class CreatureCardData : CardData {
 
     public CreatureCardData(string name, Stats stats, Energy cost, Energy sac, string materialDir = "stolen/Materials/", List<Effect> effects = null) : base(name, cost, sac, materialDir, effects) {
         this.stats = stats;
+    }
+
+    public CreatureCardData(CreatureCardData other) : base(other.name, other.cost, other.sac, other.materialDir, other.effects) {
+        this.stats = new Stats(other.stats);
     }
 }
 

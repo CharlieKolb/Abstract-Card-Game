@@ -28,6 +28,11 @@ public class CreatureEntity : BoardEntity
         this.baseData = data;
         this.stats = new Stats(data.stats);
     }
+
+    public override bool isColor(EffectHandle.ColorPattern color) {
+        return baseData.cost.getValue(color) > 0;
+    }
+
 }
 
 

@@ -1,5 +1,7 @@
 using System;
 
+using EventHandle;
+
 using Debug = UnityEngine.Debug;
 
 public class Observable {
@@ -15,4 +17,9 @@ public class Observable {
 }
 
 public class Entity : Observable, ITargetable {
+
+
+    public virtual bool isColor(EffectHandle.ColorPattern color) {
+        return false;
+    }
 }

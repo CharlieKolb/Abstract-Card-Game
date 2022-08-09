@@ -64,18 +64,18 @@ public abstract class CardBlueprint
 }
 
 public class CreatureCardBlueprint : CardBlueprint {
-    public Stats stats;
+    public CreatureCardData creatureData;
     public CreatureCardBlueprint(
         CreatureCardData data,
         F.InstantiateOriginal instantiateFunc,
         GameObject prefab
-    ) : base(data, data.effects.Concat(new List<Effect>{ new SpawnCreatureEffect(data) }).ToList(), instantiateFunc, prefab) {
-        this.stats = data.stats;
+    ) : base(data, data.effects, instantiateFunc, prefab) {
+        this.creatureData = data;
     }
 
     public override Card MakeCard()
     {
-        return new CreatureCard(this);
+        return new CreatureCard(new CreatureCardData(this.creatureData));
     }
 }
 
